@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="falconmedia_bundle_deal_rule" resource="default" engine="innodb" comment="Bundle Deal Rule">
+        <column xsi:type="int" name="rule_id" unsigned="true" nullable="false" identity="true" comment="Rule ID"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="255" comment="Admin Name"/>
+        <column xsi:type="varchar" name="title" nullable="true" length="255" comment="Storefront Title"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="0" comment="Is Active"/>
+        <column xsi:type="date" name="from_date" nullable="true" comment="Active From"/>
+        <column xsi:type="date" name="to_date" nullable="true" comment="Active To"/>
+        <column xsi:type="int" name="priority" unsigned="false" nullable="false" default="0" comment="Priority, lower wins"/>
+        <column xsi:type="smallint" name="exclude_other_discounts" unsigned="true" nullable="false" default="1" comment="Exclude Set Items From Other Cart Price Rules"/>
+        <column xsi:type="varchar" name="customer_group_ids" nullable="true" length="255" comment="Customer Group IDs, comma separated, NULL is all groups"/>
+        <column xsi:type="varchar" name="external_reference" nullable="true" length="64" comment="Reference of the source system, for idempotent imports"/>
+        <column xsi:type="varchar" name="url_key" nullable="true" length="255" comment="URL Key of the Set Page"/>
+        <column xsi:type="text" name="description" nullable="true" comment="Set Page Description"/>
+        <column xsi:type="varchar" name="color_group" nullable="true" length="64" comment="Colour Group Code"/>
+        <column xsi:type="int" name="color_option_id" unsigned="true" nullable="true" comment="Option ID of the color attribute"/>
+        <column xsi:type="int" name="color_sort_order" unsigned="false" nullable="true" comment="Sort Order within the Colour Group"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="rule_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="FALCONMEDIA_BUNDLE_DEAL_RULE_EXTERNAL_REFERENCE">
+            <column name="external_reference"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="FALCONMEDIA_BUNDLE_DEAL_RULE_URL_KEY">
+            <column name="url_key"/>
+        </constraint>
+        <index referenceId="FALCONMEDIA_BUNDLE_DEAL_RULE_IS_ACTIVE_PRIORITY" indexType="btree">
+            <column name="is_active"/>
+            <column name="priority"/>
+        </index>
+        <index referenceId="FALCONMEDIA_BUNDLE_DEAL_RULE_COLOR_GROUP" indexType="btree">
+            <column name="color_group"/>
+        </index>
+    </table>
+
+    <table name="falconmedia_bundle_deal_rule_store" resource="default" engine="innodb" comment="Bundle Deal Rule Store">
+        <column xsi:type="int" name="rule_id" unsigned="true" nullable="false" comment="Rule ID"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" comment="Store ID, 0 is all stores"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="rule_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="FALCONMEDIA_BUNDLE_DEAL_RULE_STORE_RULE_ID"
+                    table="falconmedia_bundle_deal_rule_store" column="rule_id"
+                    referenceTable="falconmedia_bundle_deal_rule" referenceColumn="rule_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="FALCONMEDIA_BUNDLE_DEAL_RULE_STORE_STORE_ID"
+                    table="falconmedia_bundle_deal_rule_store" column="store_id"
+                    referenceTable="store" referenceColumn="store_id" onDelete="CASCADE"/>
+    </table>
+
+    <table name="falconmedia_bundle_deal_slot" resource="default" engine="innodb" comment="Bundle Deal Slot">
+        <column xsi:type="int" name="slot_id" unsigned="true" nullable="false" identity="true" comment="Slot ID"/>
+        <column xsi:type="int" name="rule_id" unsigned="true" nullable="false" comment="Rule ID"/>
+        <column xsi:type="varchar" name="title" nullable="false" length="255" comment="Storefront Title"/>
+        <column xsi:type="int" name="sort_order" unsigned="false" nullable="false" default="0" comment="Sort Order"/>
+        <column xsi:type="varchar" name="slot_type" nullable="false" length="16" default="variable" comment="Slot Type: fixed, variable, optional"/>
+        <column xsi:type="varchar" name="sort_by" nullable="false" length="32" default="position" comment="Candidate Sorting"/>
+        <column xsi:type="mediumtext" name="conditions_serialized" nullable="true" comment="Member Product Conditions"/>
+        <column xsi:type="smallint" name="use_as_entry" unsigned="true" nullable="false" default="1" comment="Show Bundle On Member PDP"/>
+        <column xsi:type="varchar" name="discount_type" nullable="false" length="16" default="none" comment="Discount Type: none, percent, fixed"/>
+        <column xsi:type="decimal" name="discount_amount" scale="4" precision="12" unsigned="false" nullable="false" default="0" comment="Discount Amount"/>
+        <column xsi:type="smallint" name="exclude_special_price" unsigned="true" nullable="false" default="1" comment="No Set Discount On Items With Special Price"/>
+        <column xsi:type="int" name="sales_rule_id" unsigned="true" nullable="true" comment="Generated Cart Price Rule ID"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="slot_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="FALCONMEDIA_BUNDLE_DEAL_SLOT_RULE_ID"
+                    table="falconmedia_bundle_deal_slot" column="rule_id"
+                    referenceTable="falconmedia_bundle_deal_rule" referenceColumn="rule_id" onDelete="CASCADE"/>
+    </table>
+
+    <table name="falconmedia_bundle_deal_link" resource="default" engine="innodb" comment="Bundle Deal Manual Product Link">
+        <column xsi:type="int" name="link_id" unsigned="true" nullable="false" identity="true" comment="Link ID"/>
+        <column xsi:type="int" name="rule_id" unsigned="true" nullable="false" comment="Rule ID"/>
+        <column xsi:type="int" name="slot_id" unsigned="true" nullable="false" comment="Slot ID"/>
+        <column xsi:type="int" name="product_id" unsigned="true" nullable="false" comment="Product ID"/>
+        <column xsi:type="int" name="position" unsigned="false" nullable="false" default="0" comment="Position"/>
+        <column xsi:type="smallint" name="use_as_entry" unsigned="true" nullable="true" comment="Entry Override, NULL inherits slot"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="link_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="FALCONMEDIA_BUNDLE_DEAL_LINK_RULE_SLOT_PRODUCT">
+            <column name="rule_id"/>
+            <column name="slot_id"/>
+            <column name="product_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="FALCONMEDIA_BUNDLE_DEAL_LINK_RULE_ID"
+                    table="falconmedia_bundle_deal_link" column="rule_id"
+                    referenceTable="falconmedia_bundle_deal_rule" referenceColumn="rule_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="FALCONMEDIA_BUNDLE_DEAL_LINK_SLOT_ID"
+                    table="falconmedia_bundle_deal_link" column="slot_id"
+                    referenceTable="falconmedia_bundle_deal_slot" referenceColumn="slot_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="FALCONMEDIA_BUNDLE_DEAL_LINK_PRODUCT_ID"
+                    table="falconmedia_bundle_deal_link" column="product_id"
+                    referenceTable="catalog_product_entity" referenceColumn="entity_id" onDelete="CASCADE"/>
+        <index referenceId="FALCONMEDIA_BUNDLE_DEAL_LINK_PRODUCT_ID" indexType="btree">
+            <column name="product_id"/>
+        </index>
+    </table>
+
+    <table name="falconmedia_bundle_deal_index" resource="default" engine="innodb" comment="Bundle Deal Product Index">
+        <column xsi:type="int" name="rule_id" unsigned="true" nullable="false" comment="Rule ID"/>
+        <column xsi:type="int" name="slot_id" unsigned="true" nullable="false" comment="Slot ID"/>
+        <column xsi:type="int" name="product_id" unsigned="true" nullable="false" comment="Product ID"/>
+        <column xsi:type="int" name="position" unsigned="false" nullable="false" default="0" comment="Position"/>
+        <column xsi:type="smallint" name="is_entry" unsigned="true" nullable="false" default="1" comment="Bundle Shown On This Product PDP"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="rule_id"/>
+            <column name="slot_id"/>
+            <column name="product_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="FALCONMEDIA_BUNDLE_DEAL_INDEX_RULE_ID"
+                    table="falconmedia_bundle_deal_index" column="rule_id"
+                    referenceTable="falconmedia_bundle_deal_rule" referenceColumn="rule_id" onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="FALCONMEDIA_BUNDLE_DEAL_INDEX_PRODUCT_ID"
+                    table="falconmedia_bundle_deal_index" column="product_id"
+                    referenceTable="catalog_product_entity" referenceColumn="entity_id" onDelete="CASCADE"/>
+        <index referenceId="FALCONMEDIA_BUNDLE_DEAL_INDEX_PRODUCT_ID_SLOT_ID" indexType="btree">
+            <column name="product_id"/>
+            <column name="slot_id"/>
+        </index>
+    </table>
+
+    <table name="salesrule" resource="default">
+        <column xsi:type="smallint" name="applies_to_bundle_items" unsigned="true" nullable="false" default="1" comment="Also Applies To Complete Bundle Deal Set Items"/>
+    </table>
+</schema>

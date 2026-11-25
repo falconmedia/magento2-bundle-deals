@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">falconmedia_bundledeals_slot_form.falconmedia_bundledeals_slot_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Slot</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="back" class="FalconMedia\BundleDeals\Ui\Component\Control\Slot\BackButton"/>
+            <button name="delete" class="FalconMedia\BundleDeals\Ui\Component\Control\Slot\DeleteButton"/>
+            <button name="save_and_continue" class="FalconMedia\BundleDeals\Ui\Component\Control\SaveAndContinueButton"/>
+            <button name="save" class="FalconMedia\BundleDeals\Ui\Component\Control\SaveButton"/>
+        </buttons>
+        <namespace>falconmedia_bundledeals_slot_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>falconmedia_bundledeals_slot_form.falconmedia_bundledeals_slot_form_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="falconmedia_bundledeals_slot_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="bundledeals/slot/save"/>
+        </settings>
+        <aclResource>FalconMedia_BundleDeals::rules</aclResource>
+        <dataProvider class="FalconMedia\BundleDeals\Ui\DataProvider\Slot\Form\DataProvider" name="falconmedia_bundledeals_slot_form_data_source">
+            <settings>
+                <requestFieldName>slot_id</requestFieldName>
+                <primaryFieldName>slot_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="general" sortOrder="10">
+        <settings>
+            <label translate="true">Slot</label>
+            <collapsible>false</collapsible>
+        </settings>
+        <field name="slot_id" formElement="hidden">
+            <settings>
+                <dataType>text</dataType>
+                <dataScope>slot_id</dataScope>
+            </settings>
+        </field>
+        <field name="rule_id" formElement="hidden">
+            <settings>
+                <dataType>text</dataType>
+                <dataScope>rule_id</dataScope>
+            </settings>
+        </field>
+        <field name="title" formElement="input" sortOrder="10">
+            <settings>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Title</label>
+                <notice translate="true">Shown above the product choice of this slot on the storefront.</notice>
+                <dataScope>title</dataScope>
+            </settings>
+        </field>
+        <field name="sort_order" formElement="input" sortOrder="20">
+            <settings>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>number</dataType>
+                <label translate="true">Sort Order</label>
+                <dataScope>sort_order</dataScope>
+            </settings>
+        </field>
+        <field name="slot_type" formElement="select" sortOrder="25">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Slot Type</label>
+                <notice translate="true">Fixed slots always hold the first product, variable slots let the shopper pick a product on the set page, optional slots can be unchecked: a set is still complete and discounted without them.</notice>
+                <dataScope>slot_type</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="FalconMedia\BundleDeals\Model\Config\Source\SlotType"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="sort_by" formElement="select" sortOrder="30">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Sort Products By</label>
+                <notice translate="true">The first product is the default choice in this slot.</notice>
+                <dataScope>sort_by</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="FalconMedia\BundleDeals\Model\Config\Source\SortBy"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="use_as_entry" formElement="checkbox" sortOrder="40">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="default" xsi:type="number">1</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Use as entry (show bundle on this product's page)</label>
+                <dataScope>use_as_entry</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+        <field name="discount_type" formElement="select" sortOrder="50">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Discount</label>
+                <notice translate="true">Applied to this slot's item when the complete set is in the cart.</notice>
+                <dataScope>discount_type</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="FalconMedia\BundleDeals\Ui\Component\Form\DiscountTypeOptions"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="discount_amount" formElement="input" sortOrder="60">
+            <settings>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                    <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Discount Amount</label>
+                <notice translate="true">A percentage cannot be more than 100.</notice>
+                <dataScope>discount_amount</dataScope>
+            </settings>
+        </field>
+        <field name="exclude_special_price" formElement="checkbox" sortOrder="70">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="default" xsi:type="number">1</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">No discount on items with a special price</label>
+                <notice translate="true">When the item in this slot already has a special price, it gets no set discount.</notice>
+                <dataScope>exclude_special_price</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+    </fieldset>
+    <htmlContent name="slot_conditions" sortOrder="20">
+        <argument name="data" xsi:type="array">
+            <item name="wrapper" xsi:type="array">
+                <item name="label" xsi:type="string" translate="true">Conditions</item>
+                <item name="collapsible" xsi:type="boolean">true</item>
+                <item name="opened" xsi:type="boolean">true</item>
+            </item>
+        </argument>
+        <settings>
+            <wrapper>
+                <canShow>true</canShow>
+                <componentType>fieldset</componentType>
+            </wrapper>
+        </settings>
+        <block class="FalconMedia\BundleDeals\Block\Adminhtml\Slot\Conditions" name="falconmedia_bundledeals_slot_conditions"/>
+    </htmlContent>
+</form>

@@ -1,0 +1,48 @@
+{
+    "name": "falconmedia/magento2-bundle-deals",
+    "description": "Bundle deals with configurable products: rule-based product sets on the product page, discounted through native cart price rules",
+    "type": "magento2-module",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1 <8.6",
+        "magento/framework": "*",
+        "magento/module-backend": "*",
+        "magento/module-catalog": "*",
+        "magento/module-catalog-rule": "*",
+        "magento/module-checkout": "*",
+        "magento/module-configurable-product": "*",
+        "magento/module-cms": "*",
+        "magento/module-customer": "*",
+        "magento/module-eav": "*",
+        "magento/module-quote": "*",
+        "magento/module-review": "*",
+        "magento/module-rule": "*",
+        "magento/module-sales-rule": "*",
+        "magento/module-store": "*",
+        "magento/module-ui": "*",
+        "magento/module-widget": "*",
+        "hyva-themes/magento2-theme-module": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "FalconMedia\\BundleDeals\\": "src/"
+        },
+        "files": [
+            "src/registration.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "FalconMedia\\BundleDeals\\Test\\Unit\\": "tests/Unit/"
+        }
+    },
+    "keywords": [
+        "magento2",
+        "mage-os",
+        "hyva",
+        "bundle",
+        "cross-sell",
+        "price-rules"
+    ],
+    "homepage": "https://github.com/falconmedia/magento2-bundle-deals"
+}

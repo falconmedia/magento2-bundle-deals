@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <falconmedia_bundle_deals>
+            <general>
+                <anchor_id>bundle-deal</anchor_id>
+                <enabled>0</enabled>
+                <block_title>Better together</block_title>
+                <max_slots>3</max_slots>
+                <max_candidates>8</max_candidates>
+                <position>buybox</position>
+                <show_split_shipment>0</show_split_shipment>
+            </general>
+            <color_match>
+                <enabled>1</enabled>
+                <attribute>color</attribute>
+                <swatch_attribute></swatch_attribute>
+                <fallback_colors></fallback_colors>
+            </color_match>
+            <overview>
+                <enabled>0</enabled>
+                <url_key>bundles</url_key>
+                <page_title>Bundle deals</page_title>
+                <items_per_page>24</items_per_page>
+                <default_sort>popular</default_sort>
+                <sport_attribute>sport</sport_attribute>
+                <brand_attribute>manufacturer</brand_attribute>
+                <brand_param>brand</brand_param>
+            </overview>
+            <set_page>
+                <enabled>0</enabled>
+                <indexable>0</indexable>
+                <url_prefix>set</url_prefix>
+                <more_sets_count>4</more_sets_count>
+                <sticky_bar>1</sticky_bar>
+                <review_source>items</review_source>
+                <sizechart_cms_block>sizechart</sizechart_cms_block>
+            </set_page>
+            <texts>
+                <set_explanation>Every item comes as its own line in your cart, so you can still change or return items one by one. The set discount applies while the set is complete.</set_explanation>
+                <set_added>The set has been added to your shopping cart.</set_added>
+                <product_all_direct>Everything delivered tomorrow</product_all_direct>
+                <product_complete_in>Complete in %1 working days</product_complete_in>
+                <product_complete_in_range>Complete in %1 to %2 working days</product_complete_in_range>
+                <product_split_shipment>Delivered in 2 shipments</product_split_shipment>
+                <product_discount_in_cart>The discount is applied in the shopping cart.</product_discount_in_cart>
+                <overview_empty_title>No sets for this combination</overview_empty_title>
+                <overview_empty_hint>Try another sport or brand.</overview_empty_hint>
+                <overview_up_to>Up to %1% off the set</overview_up_to>
+                <cart_title>Frequently bought together</cart_title>
+                <cart_hint>complete the set and get the bundle discount.</cart_hint>
+            </texts>
+        </falconmedia_bundle_deals>
+    </default>
+</config>

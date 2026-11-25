@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<!--
+Bundle deal on the product page: one block per position, only the configured one renders.
+The details positions are children of product.info.details and are rendered around it by a plugin.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="product.info.additional.actions">
+            <block class="FalconMedia\BundleDeals\Block\Product\BundleDeal"
+                   name="falconmedia.bundledeals.pdp.buybox"
+                   template="FalconMedia_BundleDeals::product/bundle-deal.phtml"
+                   after="-">
+                <arguments>
+                    <argument name="texts" xsi:type="object">FalconMedia\BundleDeals\ViewModel\Texts</argument>
+                    <argument name="position" xsi:type="string">buybox</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+
+        <referenceBlock name="product.info.details">
+            <block class="FalconMedia\BundleDeals\Block\Product\BundleDeal"
+                   name="falconmedia.bundledeals.pdp.before_details"
+                   template="FalconMedia_BundleDeals::product/bundle-deal.phtml">
+                <arguments>
+                    <argument name="texts" xsi:type="object">FalconMedia\BundleDeals\ViewModel\Texts</argument>
+                    <argument name="position" xsi:type="string">before_details</argument>
+                </arguments>
+            </block>
+            <block class="FalconMedia\BundleDeals\Block\Product\BundleDeal"
+                   name="falconmedia.bundledeals.pdp.after_details"
+                   template="FalconMedia_BundleDeals::product/bundle-deal.phtml">
+                <arguments>
+                    <argument name="texts" xsi:type="object">FalconMedia\BundleDeals\ViewModel\Texts</argument>
+                    <argument name="position" xsi:type="string">after_details</argument>
+                </arguments>
+            </block>
+        </referenceBlock>
+    </body>
+</page>

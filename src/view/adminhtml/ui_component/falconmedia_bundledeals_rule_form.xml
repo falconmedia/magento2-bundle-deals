@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">falconmedia_bundledeals_rule_form.falconmedia_bundledeals_rule_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Bundle Deal</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="back" class="FalconMedia\BundleDeals\Ui\Component\Control\Rule\BackButton"/>
+            <button name="delete" class="FalconMedia\BundleDeals\Ui\Component\Control\Rule\DeleteButton"/>
+            <button name="save_and_continue" class="FalconMedia\BundleDeals\Ui\Component\Control\SaveAndContinueButton"/>
+            <button name="save" class="FalconMedia\BundleDeals\Ui\Component\Control\SaveButton"/>
+        </buttons>
+        <namespace>falconmedia_bundledeals_rule_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>falconmedia_bundledeals_rule_form.falconmedia_bundledeals_rule_form_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="falconmedia_bundledeals_rule_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="bundledeals/rule/save"/>
+        </settings>
+        <aclResource>FalconMedia_BundleDeals::rules</aclResource>
+        <dataProvider class="FalconMedia\BundleDeals\Ui\DataProvider\Rule\Form\DataProvider" name="falconmedia_bundledeals_rule_form_data_source">
+            <settings>
+                <requestFieldName>rule_id</requestFieldName>
+                <primaryFieldName>rule_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="general" sortOrder="10">
+        <settings>
+            <label translate="true">Bundle Deal</label>
+            <collapsible>false</collapsible>
+        </settings>
+        <field name="rule_id" formElement="hidden">
+            <settings>
+                <dataType>text</dataType>
+                <dataScope>rule_id</dataScope>
+            </settings>
+        </field>
+        <field name="name" formElement="input" sortOrder="10">
+            <settings>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Name</label>
+                <notice translate="true">Only shown in the admin.</notice>
+                <dataScope>name</dataScope>
+            </settings>
+        </field>
+        <field name="title" formElement="input" sortOrder="20">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Storefront Title</label>
+                <notice translate="true">Heading of the bundle block on the product page. Leave empty to use the default block title.</notice>
+                <dataScope>title</dataScope>
+            </settings>
+        </field>
+        <field name="is_active" formElement="checkbox" sortOrder="30">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="default" xsi:type="number">1</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Active</label>
+                <dataScope>is_active</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+        <field name="store_ids" formElement="multiselect" sortOrder="40">
+            <settings>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>int</dataType>
+                <label translate="true">Store View</label>
+                <dataScope>store_ids</dataScope>
+            </settings>
+            <formElements>
+                <multiselect>
+                    <settings>
+                        <options class="FalconMedia\BundleDeals\Ui\Component\Form\StoreOptions"/>
+                    </settings>
+                </multiselect>
+            </formElements>
+        </field>
+        <field name="customer_group_ids" formElement="multiselect" sortOrder="45">
+            <settings>
+                <dataType>int</dataType>
+                <label translate="true">Customer Groups</label>
+                <notice translate="true">Leave empty to apply the bundle deal to all customer groups.</notice>
+                <dataScope>customer_group_ids</dataScope>
+            </settings>
+            <formElements>
+                <multiselect>
+                    <settings>
+                        <options class="Magento\CatalogRule\Model\Rule\CustomerGroupsOptionsProvider"/>
+                    </settings>
+                </multiselect>
+            </formElements>
+        </field>
+        <field name="from_date" formElement="date" sortOrder="50">
+            <settings>
+                <validation>
+                    <rule name="validate-date" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">From</label>
+                <dataScope>from_date</dataScope>
+            </settings>
+        </field>
+        <field name="to_date" formElement="date" sortOrder="60">
+            <settings>
+                <validation>
+                    <rule name="validate-date" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">To</label>
+                <dataScope>to_date</dataScope>
+            </settings>
+        </field>
+        <field name="priority" formElement="input" sortOrder="70">
+            <settings>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>number</dataType>
+                <label translate="true">Priority</label>
+                <notice translate="true">Lower number wins. Decides which bundle deal is shown by default on a product page that is an entry for more than one deal.</notice>
+                <dataScope>priority</dataScope>
+            </settings>
+        </field>
+        <field name="exclude_other_discounts" formElement="checkbox" sortOrder="80">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="default" xsi:type="number">1</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Exclude from other discounts</label>
+                <notice translate="true">When the set is complete in the cart, its items get no discount from other cart price rules.</notice>
+                <dataScope>exclude_other_discounts</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+    </fieldset>
+    <fieldset name="set_page" sortOrder="12">
+        <settings>
+            <label translate="true">Set Page</label>
+            <collapsible>true</collapsible>
+            <opened>true</opened>
+        </settings>
+        <field name="url_key" formElement="input" sortOrder="10">
+            <settings>
+                <validation>
+                    <rule name="validate-identifier" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">URL Key</label>
+                <notice translate="true">Address of the set page below the configured set URL prefix. Leave empty to generate it from the title.</notice>
+                <dataScope>url_key</dataScope>
+            </settings>
+        </field>
+        <field name="description" formElement="textarea" sortOrder="20">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Description</label>
+                <notice translate="true">Shown in the description accordion on the set page.</notice>
+                <dataScope>description</dataScope>
+            </settings>
+        </field>
+    </fieldset>
+    <fieldset name="color_group" sortOrder="15">
+        <settings>
+            <label translate="true">Colour Group</label>
+            <collapsible>true</collapsible>
+            <opened>false</opened>
+        </settings>
+        <field name="color_group" formElement="input" sortOrder="10">
+            <settings>
+                <validation>
+                    <rule name="validate-identifier" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Group Code</label>
+                <notice translate="true">Bundle deals with the same code are colour versions of one bundle: the overview page shows them as one card and the product page offers a colour switch.</notice>
+                <dataScope>color_group</dataScope>
+            </settings>
+        </field>
+        <field name="color_option_id" formElement="select" sortOrder="20">
+            <settings>
+                <dataType>int</dataType>
+                <label translate="true">Colour</label>
+                <notice translate="true">Label of this bundle deal in the colour switch.</notice>
+                <dataScope>color_option_id</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="FalconMedia\BundleDeals\Model\Config\Source\VariationOptions"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="color_sort_order" formElement="input" sortOrder="30">
+            <settings>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>number</dataType>
+                <label translate="true">Sort Order in Group</label>
+                <notice translate="true">Lowest active bundle deal of the group represents the group on the overview page.</notice>
+                <dataScope>color_sort_order</dataScope>
+            </settings>
+        </field>
+    </fieldset>
+    <fieldset name="slots" sortOrder="20">
+        <settings>
+            <label translate="true">Slots</label>
+            <collapsible>true</collapsible>
+            <opened>true</opened>
+        </settings>
+        <htmlContent name="slots_content">
+            <block class="Magento\Backend\Block\Template" name="falconmedia_bundledeals_rule_slots" template="FalconMedia_BundleDeals::rule/slots.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">FalconMedia\BundleDeals\ViewModel\Adminhtml\RuleSlots</argument>
+                </arguments>
+            </block>
+        </htmlContent>
+    </fieldset>
+</form>

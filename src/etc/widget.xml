@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<widgets xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Widget:etc/widget.xsd">
+    <widget id="falconmedia_bundle_deals_overview" class="FalconMedia\BundleDeals\Block\Widget\BundleOverview" is_email_compatible="false">
+        <label translate="true">Bundle Deals Overview</label>
+        <description translate="true">List of the active bundle deals with their products and discount</description>
+        <parameters>
+            <parameter name="title" xsi:type="text" visible="true" sort_order="10">
+                <label translate="true">Title</label>
+            </parameter>
+            <parameter name="heading_level" xsi:type="select" visible="true" sort_order="15">
+                <label translate="true">Title Heading Level</label>
+                <description translate="true">Use H1 when the overview is the main content of the page.</description>
+                <options>
+                    <option name="h2" value="2" selected="true">
+                        <label translate="true">H2</label>
+                    </option>
+                    <option name="h1" value="1">
+                        <label translate="true">H1</label>
+                    </option>
+                </options>
+            </parameter>
+            <parameter name="limit" xsi:type="text" visible="true" required="true" sort_order="20">
+                <label translate="true">Maximum Number of Bundle Deals</label>
+                <value>10</value>
+            </parameter>
+        </parameters>
+    </widget>
+</widgets>

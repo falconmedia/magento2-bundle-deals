@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="FalconMedia\BundleDeals\Api\DeliveryTimeProviderInterface" type="FalconMedia\BundleDeals\Model\Delivery\NullDeliveryTimeProvider"/>
+    <type name="Magento\SalesRule\Model\RulesApplier">
+        <plugin name="falconmedia_bundle_deals_stacking" type="FalconMedia\BundleDeals\Plugin\SalesRule\ApplyStackingRules"/>
+    </type>
+    <type name="Magento\Framework\Console\CommandListInterface">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="falconmedia_bundle_deals_reindex" xsi:type="object">FalconMedia\BundleDeals\Console\Command\Reindex</item>
+                <item name="falconmedia_bundle_deals_create" xsi:type="object">FalconMedia\BundleDeals\Console\Command\Create</item>
+                <item name="falconmedia_bundle_deals_sync_rules" xsi:type="object">FalconMedia\BundleDeals\Console\Command\SyncRules</item>
+                <item name="falconmedia_bundle_deals_import_amasty" xsi:type="object">FalconMedia\BundleDeals\Console\Command\ImportAmasty</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="FalconMedia\BundleDeals\Console\Command\Create">
+        <arguments>
+            <argument name="ruleIndexer" xsi:type="object">FalconMedia\BundleDeals\Model\Indexer\RuleIndexer\Proxy</argument>
+            <argument name="ruleResource" xsi:type="object">FalconMedia\BundleDeals\Model\ResourceModel\Rule\Proxy</argument>
+            <argument name="slotResource" xsi:type="object">FalconMedia\BundleDeals\Model\ResourceModel\Slot\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="FalconMedia\BundleDeals\Console\Command\SyncRules">
+        <arguments>
+            <argument name="synchronizer" xsi:type="object">FalconMedia\BundleDeals\Model\Discount\SalesRuleSynchronizer\Proxy</argument>
+            <argument name="ruleResource" xsi:type="object">FalconMedia\BundleDeals\Model\ResourceModel\Rule\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="FalconMedia\BundleDeals\Console\Command\ImportAmasty">
+        <arguments>
+            <argument name="importer" xsi:type="object">FalconMedia\BundleDeals\Model\Import\Amasty\Importer\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="FalconMedia\BundleDeals\Console\Command\Reindex">
+        <arguments>
+            <argument name="ruleIndexer" xsi:type="object">FalconMedia\BundleDeals\Model\Indexer\RuleIndexer\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="falconmedia_bundledeals_rule_listing_data_source" xsi:type="string">FalconMedia\BundleDeals\Ui\DataProvider\Rule\Listing\Collection</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="FalconMedia\BundleDeals\Ui\DataProvider\Rule\Listing\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">falconmedia_bundle_deal_rule</argument>
+            <argument name="resourceModel" xsi:type="string">FalconMedia\BundleDeals\Model\ResourceModel\Rule</argument>
+            <argument name="identifierName" xsi:type="string">rule_id</argument>
+        </arguments>
+    </type>
+</config>

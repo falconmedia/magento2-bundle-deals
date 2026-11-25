@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="checkout.cart.widget">
+            <block class="FalconMedia\BundleDeals\Block\Cart\MissingMembers"
+                   name="falconmedia.bundledeals.cart.missing"
+                   template="FalconMedia_BundleDeals::cart/missing-members.phtml">
+                <arguments>
+                    <argument name="texts" xsi:type="object">FalconMedia\BundleDeals\ViewModel\Texts</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

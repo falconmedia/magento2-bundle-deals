@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="page.main.title" remove="true"/>
+        <referenceContainer name="content">
+            <block class="FalconMedia\BundleDeals\Block\Overview\Listing"
+                   name="falconmedia.bundledeals.overview"
+                   template="FalconMedia_BundleDeals::overview/listing.phtml">
+                <arguments>
+                    <argument name="texts" xsi:type="object">FalconMedia\BundleDeals\ViewModel\Texts</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

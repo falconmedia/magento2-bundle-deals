@@ -1,0 +1,19 @@
+parameters:
+    level: 6
+    paths:
+        - src
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # Factories are generated code.
+        - '#Magento\\Rule\\Model\\Action\\CollectionFactory#'
+        # Magento models, forms and conditions expose their data through DataObject::__call.
+        - '#^Call to an undefined method Magento\\(Framework\\Data\\Form|Backend\\Block\\Widget\\Form\\Renderer\\Fieldset|Rule\\Model\\Condition|Quote\\Model\\Quote\\Item|ConfigurableProduct\\Block)\S*::(set|get)[A-Z]\w*\(\)\.$#'
+        - '#^Call to an undefined method FalconMedia\\BundleDeals\\Model\\Rule\\Condition\\\w+::set(Operator|Attribute)Option\(\)\.$#'
+        - '#^Method Magento\\Rule\\Model\\Condition\\AbstractCondition::setFormName\(\) invoked with 1 parameter, 0 required\.$#'
+        # Concrete classes behind these interfaces at runtime.
+        - '#^Call to an undefined method Magento\\Framework\\View\\Result\\Page::setActiveMenu\(\)\.$#'
+        - '#^Call to an undefined method Magento\\Framework\\App\\RequestInterface::getPostValue\(\)\.$#'
+        - '#^Call to an undefined method Magento\\Store\\Api\\Data\\StoreInterface::(getBaseCurrencyCode|getCurrentCurrencyCode|getBaseUrl)\(\)\.$#'
+        - '#^Call to an undefined method Magento\\Cms\\Block\\Block::setBlockId\(\)\.$#'
+        - '#^Call to an undefined method Magento\\Rule\\Model\\Condition\\Combine::collectValidatedAttributes\(\)\.$#'

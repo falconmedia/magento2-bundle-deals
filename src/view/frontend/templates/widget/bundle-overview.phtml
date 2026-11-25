@@ -1,0 +1,108 @@
+<?php
+
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+
+/**
+ * CMS widget: the active bundle deals with their default products and set price.
+ */
+declare(strict_types=1);
+
+use FalconMedia\BundleDeals\Block\Widget\BundleOverview;
+use Magento\Framework\Escaper;
+
+/**
+ * @var BundleOverview $block
+ */
+/**
+ * @var Escaper $escaper
+ */
+
+$bundles = $block->getBundles();
+$titleId = 'fm-bundle-overview-title-'
+    . substr(hash('sha256', (string) $block->getNameInLayout() . spl_object_id($block)), 0, 8);
+if (!$bundles) {
+    return;
+}
+$level = $block->getHeadingLevel();
+$cardLevel = $level + 1;
+?>
+<section class="fm-bundle-overview my-fmbd-6" aria-labelledby="<?= $escaper->escapeHtmlAttr($titleId) ?>">
+    <?php if ($block->getTitle()): ?>
+        <h<?= (int) $level ?> id="<?= $escaper->escapeHtmlAttr($titleId) ?>" class="mb-fmbd-4 text-fmbd-xl font-semibold">
+            <?= $escaper->escapeHtml($block->getTitle()) ?>
+        </h<?= (int) $level ?>>
+    <?php else: ?>
+        <h<?= (int) $level ?> id="<?= $escaper->escapeHtmlAttr($titleId) ?>"
+            class="sr-only"><?= $escaper->escapeHtml(__('Bundle deals')) ?></h<?= (int) $level ?>>
+    <?php endif; ?>
+    <ul class="grid min-w-0 gap-fmbd-4 md:grid-cols-2">
+        <?php foreach ($bundles as $bundle): ?>
+            <?php $totals = $block->getTotals($bundle); ?>
+            <?php $bundleTitle = $block->getBundleTitle($bundle); ?>
+            <li class="flex min-w-0 flex-col gap-fmbd-3 rounded-fmbd-md border border-fmbd-border bg-fmbd-bg p-fmbd-4">
+                <?php if ($bundleTitle !== ''): ?>
+                    <h<?= (int) $cardLevel ?> class="text-fmbd-lg font-semibold break-words"><?=
+                        $escaper->escapeHtml($bundleTitle)
+                    ?></h<?= (int) $cardLevel ?>>
+                <?php endif; ?>
+                <ul class="flex flex-col gap-fmbd-2">
+                    <?php foreach ($bundle['slots'] as $slot): ?>
+                        <?php $product = $slot['candidates'][0]; ?>
+                        <li class="flex items-center gap-fmbd-3">
+                            <img src="<?= $escaper->escapeUrl($product['image']) ?>"
+                                 alt="<?= $escaper->escapeHtmlAttr($product['name']) ?>"
+                                 width="64" height="64" loading="lazy"
+                                 class="shrink-0 w-16 h-16 object-contain rounded-fmbd-sm bg-white border
+                                     border-fmbd-border">
+                            <span class="min-w-0 flex-1 text-sm leading-snug break-words">
+                                <span class="block
+                                    text-fmbd-text-muted"><?= $escaper->escapeHtml($slot['title']) ?></span>
+                                <a href="<?= $escaper->escapeUrl($product['url']) ?>" class="font-semibold
+                                    hover:underline">
+                                    <?= $escaper->escapeHtml($product['name']) ?>
+                                </a>
+                            </span>
+                            <?php if ($slot['discount']['type'] === 'percent'): ?>
+                                <span class="shrink-0 rounded-full bg-fmbd-discount-bg px-2 py-0.5 text-xs font-semibold
+                                    text-fmbd-discount">
+                                    <?= $escaper->escapeHtml(
+                                        __('-%1% in bundle', (float) $slot['discount']['amount'])
+                                    ) ?>
+                                </span>
+                            <?php elseif ($slot['discount']['type'] === 'fixed'): ?>
+                                <span class="shrink-0 rounded-full bg-fmbd-discount-bg px-2 py-0.5 text-xs font-semibold
+                                    text-fmbd-discount">
+                                    <?= $escaper->escapeHtml(
+                                        __('-%1 in bundle', $block->formatPrice((float) $slot['discount']['amount']))
+                                    ) ?>
+                                </span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <div class="mt-auto flex flex-wrap items-end justify-between gap-fmbd-3 border-t border-fmbd-border
+                    pt-fmbd-3">
+                    <p class="m-0">
+                        <span class="block text-sm
+                            text-fmbd-text-muted"><?= $escaper->escapeHtml(__('Together from')) ?></span>
+                        <span class="text-fmbd-lg font-semibold
+                            fmbd-num"><?= $escaper->escapeHtml($block->formatPrice($totals['total'])) ?></span>
+                        <?php if ($totals['regular'] > $totals['total']): ?>
+                            <span class="ml-fmbd-2 text-sm text-fmbd-text-muted line-through fmbd-num">
+                                <?= $escaper->escapeHtml($block->formatPrice($totals['regular'])) ?>
+                            </span>
+                        <?php endif; ?>
+                    </p>
+                    <a href="<?= $escaper->escapeUrl($bundle['url']) ?>" class="fmbd-btn fmbd-btn--inverse">
+                        <?= $escaper->escapeHtml(__('Compose bundle')) ?>
+                    </a>
+                </div>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+</section>

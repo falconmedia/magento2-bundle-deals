@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="salesrule_rule_condition_combine">
+        <observer name="falconmedia_bundle_deals_cart_conditions" instance="FalconMedia\BundleDeals\Observer\AddCartConditions"/>
+    </event>
+    <event name="controller_action_catalog_product_save_entity_after">
+        <observer name="falconmedia_bundle_deals_product_links" instance="FalconMedia\BundleDeals\Observer\Adminhtml\SaveProductLinks"/>
+    </event>
+</config>

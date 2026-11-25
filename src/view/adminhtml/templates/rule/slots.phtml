@@ -1,0 +1,75 @@
+<?php
+
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+
+declare(strict_types=1);
+
+use FalconMedia\BundleDeals\ViewModel\Adminhtml\RuleSlots;
+use Magento\Backend\Block\Template;
+use Magento\Framework\Escaper;
+
+/**
+ * @var Template $block
+ */
+/**
+ * @var Escaper $escaper
+ */
+/**
+ * @var RuleSlots $viewModel
+ */
+$viewModel = $block->getData('view_model');
+?>
+<?php if (!$viewModel->getRuleId()): ?>
+    <div class="message message-notice">
+        <div><?= $escaper->escapeHtml(__('Save the bundle deal first, then add its slots.')) ?></div>
+    </div>
+<?php else: ?>
+    <?php $slots = $viewModel->getSlots(); ?>
+    <?php if (count($slots) < 2): ?>
+        <div class="message message-warning">
+            <div><?= $escaper->escapeHtml(__('A bundle deal needs at least two slots before it is shown.')) ?></div>
+        </div>
+    <?php endif; ?>
+    <?php if ($slots): ?>
+        <div class="admin__data-grid-wrap admin__data-grid-wrap-static">
+            <table class="data-grid">
+                <thead>
+                <tr>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Title')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Sort Order')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Use as Entry')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Discount')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Indexed Products')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Action')) ?></th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($slots as $slot): ?>
+                    <tr class="data-row">
+                        <td><?= $escaper->escapeHtml($slot['title']) ?></td>
+                        <td><?= (int) $slot['sort_order'] ?></td>
+                        <td><?= $escaper->escapeHtml($slot['entry'] ? __('Yes') : __('No')) ?></td>
+                        <td><?= $escaper->escapeHtml($slot['discount']) ?></td>
+                        <td><?= (int) $slot['products'] ?></td>
+                        <td>
+                            <a href="<?= $escaper->escapeUrl($slot['edit_url']) ?>">
+                                <?= $escaper->escapeHtml(__('Edit')) ?>
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+    <p>
+        <a class="action-secondary" href="<?= $escaper->escapeUrl($viewModel->getAddUrl()) ?>">
+            <span><?= $escaper->escapeHtml(__('Add Slot')) ?></span>
+        </a>
+    </p>
+<?php endif; ?>

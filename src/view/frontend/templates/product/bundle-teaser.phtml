@@ -1,0 +1,56 @@
+<?php
+
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+
+/**
+ * One line teaser in the buy box that scrolls to the bundle deal section; keeps in sync with the section's choices.
+ */
+declare(strict_types=1);
+
+use FalconMedia\BundleDeals\Block\Product\BundleDeal;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Magento\Framework\Escaper;
+
+/**
+ * @var BundleDeal $block
+ */
+/**
+ * @var Escaper $escaper
+ */
+/**
+ * @var HyvaCsp $hyvaCsp
+ */
+
+$bundle = $block->getBundle();
+if (!$bundle) {
+    return;
+}
+
+$images = [];
+foreach ($bundle['slots'] as $slot) {
+    $images[] = $slot['candidates'][0]['image'] ?? '';
+}
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE;
+?>
+<a href="#<?= $escaper->escapeHtmlAttr($block->getAnchorId()) ?>" class="fm-bd-teaser" x-cloak
+   x-data="{images: <?= /* @noEscape */ $escaper->escapeHtmlAttr(json_encode($images, $jsonFlags)) ?>, total: '', saving: ''}"
+   @fm-bundle-changed.window="images = $event.detail.images; total = $event.detail.total; saving = $event.detail.saving"
+   @click.prevent="document.getElementById('<?= $escaper->escapeJs($block->getAnchorId()) ?>')
+       .scrollIntoView({behavior: 'smooth', block: 'start'})">
+    <span class="fm-bd-teaser__imgs">
+        <template x-for="image in images"><img :src="image" alt="" width="40" height="40" loading="lazy"></template>
+    </span>
+    <span class="fm-bd-teaser__txt">
+        <b><?= $escaper->escapeHtml(__('Buy the complete set')) ?></b>
+        <?= $escaper->escapeHtml(__('Set price')) ?> <span class="fmbd-num" x-text="total"></span>
+        <em class="fmbd-num" x-show="saving">&middot; <?= $escaper->escapeHtml(__('save')) ?> <span x-text="saving"></span></em>
+    </span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+</a>
+<?php $hyvaCsp->registerInlineScript() ?>

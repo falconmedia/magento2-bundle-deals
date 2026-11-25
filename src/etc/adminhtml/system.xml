@@ -1,0 +1,325 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="falconmedia_bundle_deals" translate="label" sortOrder="420" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Bundle Deals</label>
+            <tab>catalog</tab>
+            <resource>FalconMedia_BundleDeals::config</resource>
+            <group id="general" translate="label comment" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>General</label>
+                <comment>Bundle deals are managed under Marketing &gt; Promotions &gt; Bundle Deals. Every slot with a discount gets a generated cart price rule.</comment>
+                <field id="enabled" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="block_title" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Block Title</label>
+                    <comment>Used when the rule has no storefront title of its own.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="max_slots" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Maximum Number of Slots</label>
+                    <validate>required-entry validate-digits validate-greater-than-zero</validate>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="max_candidates" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Maximum Alternatives per Slot</label>
+                    <validate>required-entry validate-digits validate-greater-than-zero</validate>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="position" translate="label" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Position on Product Page</label>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\Position</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="anchor_id" translate="label comment" type="text" sortOrder="55" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Anchor ID</label>
+                    <comment>Id of the bundle deal section on the product page, used for the link "#anchor" of the teaser. Lowercase letters, digits, dash and underscore.</comment>
+                    <validate>validate-identifier</validate>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="show_split_shipment" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Show Split Shipment Notice</label>
+                    <comment>Shows that the bundle may arrive in two shipments when its products have different delivery times. Display only, it does not change shipping.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+            <group id="color_match" translate="label comment" sortOrder="15" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Variant Match (colour)</label>
+                <comment>On a product page the other items of the bundle start with the same value of the match attribute as the viewed product (for example the same colour). Visitors can still pick another item.</comment>
+                <field id="enabled" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Match Items</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="attribute" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Match Attribute</label>
+                    <comment>Product attribute (dropdown or multiple select) used to match items, normally the colour. Any option attribute works, for example material or size. Also used for variant groups on the overview page.</comment>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+                <field id="swatch_attribute" translate="label comment" type="select" sortOrder="25" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Swatch Attribute</label>
+                    <comment>Optional attribute whose visual swatch gives the dots on the overview page. Leave empty to use the match attribute.</comment>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+                <field id="fallback_colors" translate="label comment" type="multiselect" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Fallback Values</label>
+                    <comment>Values of the match attribute to use when no item has the same value as the viewed product. They apply in the order of the attribute options. Without a match the first item stays first.</comment>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\VariationFallbackOptions</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+            <group id="overview" translate="label comment" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Overview page</label>
+                <comment>Page that lists all active bundle deals. Only shown when bundle deals are enabled.</comment>
+                <field id="enabled" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enabled</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="url_key" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>URL key</label>
+                    <comment>Path of the page without slashes, for example "bundles".</comment>
+                    <validate>required-entry validate-identifier</validate>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="page_title" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Page title</label>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="h1" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Heading (H1)</label>
+                    <comment>Leave empty to use the page title.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="meta_title" translate="label comment" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Meta title</label>
+                    <comment>Leave empty to use the page title.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="meta_description" translate="label" type="textarea" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Meta description</label>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="intro" translate="label comment" type="textarea" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Intro text</label>
+                    <comment>Shown above the bundle deals. Ignored when a CMS block is selected.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="cms_block" translate="label" type="select" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>CMS block</label>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\CmsBlock</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="items_per_page" translate="label" type="text" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Bundle deals per page</label>
+                    <validate>required-entry validate-digits validate-greater-than-zero</validate>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="default_sort" translate="label" type="select" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Default sort order</label>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\OverviewSort</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="sport_attribute" translate="label comment" type="select" sortOrder="110" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Sport filter attribute</label>
+                    <comment>Product attribute (dropdown or multiple select) of the sport filter.</comment>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\ProductAttributes</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="brand_attribute" translate="label comment" type="select" sortOrder="120" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Brand attribute</label>
+                    <comment>Product attribute (dropdown) of the brand filter.</comment>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\ProductAttributes</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="brand_param" translate="label comment" type="text" sortOrder="130" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Brand filter URL parameter</label>
+                    <comment>Name of the URL parameter of the brand filter, for example "brand" in /bundles?brand=venum.</comment>
+                    <validate>validate-code</validate>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+            <group id="set_page" translate="label comment" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Set Page</label>
+                <comment>One page per bundle deal, reached through its URL key.</comment>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enabled</label>
+                    <comment>Set pages answer with a 404 while this is off.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="indexable" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Allow Indexing</label>
+                    <comment>Off sends noindex and keeps the pages out of the sitemap-ready state until the shop is ready.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="url_prefix" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>URL Prefix</label>
+                    <comment>Set pages live at /{prefix}/{url key}.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="more_sets_count" translate="label comment" type="text" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Number of "More Sets" Cards</label>
+                    <comment>Cards below the fold; 0 hides the section.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="sticky_bar" translate="label comment" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Sticky Buy Bar</label>
+                    <comment>Fixed bar with price and button while scrolling.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="review_source" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Review Source</label>
+                    <comment>Reviews shown on the set page are those of the set items.</comment>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\ReviewSource</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="delivery_text" translate="label comment" type="textarea" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Delivery Text</label>
+                    <comment>Content of the delivery accordion. A CMS block below wins over this text.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="delivery_cms_block" translate="label" type="select" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Delivery CMS Block</label>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\CmsBlock</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="return_text" translate="label comment" type="textarea" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Return Text</label>
+                    <comment>Content of the returns accordion. A CMS block below wins over this text.</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="return_cms_block" translate="label" type="select" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Return CMS Block</label>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\CmsBlock</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="sizechart_cms_block" translate="label comment" type="select" sortOrder="110" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Size Advice CMS Block</label>
+                    <comment>Identifier of the size chart block, for example sizechart.</comment>
+                    <source_model>FalconMedia\BundleDeals\Model\Config\Source\CmsBlock</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+            <group id="texts" translate="label comment" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Storefront texts</label>
+                <comment>Texts shown to visitors, per store view. Empty falls back to the built-in translated text. Keep the placeholders (%1, %2) where mentioned.</comment>
+                <field id="set_explanation" translate="label comment" type="textarea" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Set page explanation</label>
+                    <comment>Small print under the buy button.</comment>
+                </field>
+                <field id="set_added" translate="label comment" type="text" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Set added message</label>
+                    <comment>Shown after the set is added to the cart.</comment>
+                </field>
+                <field id="product_all_direct" translate="label comment" type="text" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Product page: delivered tomorrow</label>
+                    <comment>Shown when every item of the bundle is in stock.</comment>
+                </field>
+                <field id="product_complete_in" translate="label comment" type="text" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Product page: complete in days</label>
+                    <comment>Use %1 for the number of working days.</comment>
+                </field>
+                <field id="product_complete_in_range" translate="label comment" type="text" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Product page: complete in day range</label>
+                    <comment>Use %1 for the first and %2 for the last number of working days.</comment>
+                </field>
+                <field id="product_split_shipment" translate="label comment" type="text" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Product page: two shipments</label>
+                    <comment>Shown when the split shipment notice is enabled.</comment>
+                </field>
+                <field id="product_discount_in_cart" translate="label comment" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Product page: discount in cart</label>
+                    <comment>Note below the add to cart button.</comment>
+                </field>
+                <field id="overview_empty_title" translate="label comment" type="text" sortOrder="110" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Overview: no sets title</label>
+                    <comment>Shown when a filter combination has no sets.</comment>
+                </field>
+                <field id="overview_empty_hint" translate="label comment" type="text" sortOrder="120" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Overview: no sets hint</label>
+                    <comment>Shown below the no sets title.</comment>
+                </field>
+                <field id="overview_up_to" translate="label comment" type="text" sortOrder="130" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Overview: maximum discount</label>
+                    <comment>Use %1 for the discount percentage.</comment>
+                </field>
+                <field id="cart_title" translate="label comment" type="text" sortOrder="140" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Cart: heading</label>
+                    <comment>Heading of the missing bundle members block in the cart.</comment>
+                </field>
+                <field id="cart_hint" translate="label comment" type="text" sortOrder="150" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Cart: hint</label>
+                    <comment>Shown after the bundle title, for example "Boxing set: complete the set and get the bundle discount."</comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

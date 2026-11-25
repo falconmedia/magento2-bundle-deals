@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::marketing">
+                    <resource id="Magento_CatalogRule::promo">
+                        <resource id="FalconMedia_BundleDeals::rules" title="Bundle Deals" translate="title" sortOrder="50"/>
+                    </resource>
+                </resource>
+                <resource id="Magento_Catalog::catalog">
+                    <resource id="Magento_Catalog::catalog_inventory">
+                        <resource id="Magento_Catalog::products">
+                            <resource id="FalconMedia_BundleDeals::product_links" title="Bundle Deal Product Links" translate="title" sortOrder="200"/>
+                        </resource>
+                    </resource>
+                </resource>
+                <resource id="Magento_Backend::stores">
+                    <resource id="Magento_Backend::stores_settings">
+                        <resource id="Magento_Config::config">
+                            <resource id="FalconMedia_BundleDeals::config" title="Bundle Deals Settings" translate="title"/>
+                        </resource>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

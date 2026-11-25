@@ -1,0 +1,792 @@
+<?php
+
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+
+/**
+ * Set page of one bundle deal: collage, colour switch, size chips, combined delivery and one add to cart button for
+ * the whole set, followed by an items section, accordions, reviews and more sets.
+ */
+declare(strict_types=1);
+
+use FalconMedia\BundleDeals\Block\Set\View;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Magento\Framework\Escaper;
+
+/**
+ * @var View $block
+ */
+/**
+ * @var Escaper $escaper
+ */
+/**
+ * @var HyvaCsp $hyvaCsp
+ */
+
+$texts = $block->getData('texts');
+
+$page = $block->getSetPage();
+$variants = $page->getVariants();
+$totals = $page->getTotals();
+$items = $page->getItems();
+$summary = $page->getReviewSummary();
+$reviews = $page->getReviews();
+$moreSets = $page->getMoreSets();
+$info = $page->getInfoSettings();
+$ruleId = $page->getRuleId();
+$uid = 'fmBundleSet';
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE;
+$percent = $totals['sumPrice'] > 0 ? (int) round($totals['saving'] / $totals['sumPrice'] * 100) : 0;
+$colourDots = $variants && count($variants) > 1;
+$sizeHtml = $page->getCmsBlockHtml($info['sizeBlock']);
+$deliveryHtml = $page->getCmsBlockHtml($info['deliveryBlock']);
+$returnHtml = $page->getCmsBlockHtml($info['returnBlock']);
+$description = $page->getDescription();
+
+/**
+ * Renders the colour dots; real links so the colours also work without JavaScript.
+ */
+$renderDots = static function (string $idPrefix) use ($variants, $ruleId, $escaper): string {
+    $html = '';
+    foreach ($variants as $variant) {
+        $id = (int) $variant['ruleId'];
+        $label = (string) __('Colour %1', $variant['label']);
+        $image = (string) ($variant['imageUrl'] ?? '');
+        $style = ($image === '' && !empty($variant['swatchHex'])) ? ' style="background-color: '
+            . $escaper->escapeHtmlAttr($variant['swatchHex']) . '"' : '';
+        $img = $image === '' ? '' : '<img src="' . $escaper->escapeUrl($image) . '" alt="" width="56" height="56"'
+            . ' loading="lazy" class="block h-full w-full object-contain">';
+        $slash = $variant['available']
+            ? ''
+            : '<span class="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 rotate-45 bg-fmbd-text"></span>';
+        $attributes = $variant['available']
+            ? ' href="' . $escaper->escapeUrl($variant['url']) . '" @click.prevent="switchVariant(' . $id . ')"'
+            : ' aria-disabled="true"';
+        $html .= '<a' . $attributes . ' id="' . $idPrefix . $id . '"'
+            . ' aria-label="' . $escaper->escapeHtmlAttr($label) . '"'
+            . ' :aria-pressed="ruleId === ' . $id . ' ? \'true\' : \'false\'"'
+            . ' class="group/dot inline-flex shrink-0 items-center justify-center p-fmbd-1 rounded-fmbd-md'
+            . ' focus-visible:outline focus-visible:outline-2 focus-visible:outline-fmbd-focus'
+            . ($variant['available'] ? ' cursor-pointer' : ' cursor-not-allowed') . '">'
+            . '<span class="relative block w-14 h-14 rounded-fmbd-md border overflow-hidden bg-fmbd-surface-3 p-fmbd-1"'
+            . ' :class="ruleId === ' . $id . ' ? \'border-2 border-fmbd-text\' : \'border-fmbd-border\'"'
+            . $style . '>' . $img . $slash . '</span></a>';
+    }
+
+    return $html;
+};
+
+$config = $page->getComponentConfig();
+?>
+<script>
+    function <?= /* @noEscape */ $uid ?>() {
+        const config = <?= /* @noEscape */ json_encode($config, $jsonFlags) ?>;
+        const text = (template, ...values) => values.reduce(
+            (result, value, index) => result.replace('%' + (index + 1), value), template
+        );
+        const money = (value) => hyva.formatPrice(value);
+        const blankPicks = (variant, previous) => variant.items.map((item, index) => {
+            const old = previous && previous[index] ? previous[index] : null;
+            const pick = {cand: 0, chosen: {}, included: old ? old.included : true};
+            if (old && old.cand < item.candidates.length) {
+                pick.cand = old.cand;
+            }
+            const options = item.candidates[pick.cand].options;
+            (options ? options.attributes : []).forEach((attribute) => {
+                const kept = old ? old.chosen[attribute.code] : '';
+                if (kept && attribute.options.some((option) => option.label === kept)) {
+                    pick.chosen[attribute.code] = kept;
+                } else if (attribute.options.length === 1) {
+                    pick.chosen[attribute.code] = attribute.options[0].label;
+                }
+            });
+            return pick;
+        });
+
+        return {
+            ruleId: config.ruleId,
+            variants: config.variants,
+            picks: [],
+            photo: 0,
+            qty: 1,
+            loading: false,
+            error: '',
+            attempted: false,
+            added: false,
+            stickyVisible: false,
+
+            init() {
+                this.picks = blankPicks(this.variant, null);
+                const button = this.$el.querySelector('[data-fm-set-buy]');
+                if (button && 'IntersectionObserver' in window) {
+                    new IntersectionObserver((entries) => {
+                        this.stickyVisible = !entries[0].isIntersecting && entries[0].boundingClientRect.top < 0;
+                    }).observe(button);
+                }
+            },
+
+            text(template, ...values) {
+                return text(template, ...values);
+            },
+
+            get variant() {
+                return this.variants.find((variant) => variant.ruleId === this.ruleId);
+            },
+
+            get views() {
+                return this.variant.items.map((item, index) => this.view(item, index));
+            },
+
+            view(item, index) {
+                const pick = this.picks[index] || {cand: 0, chosen: {}, included: true};
+                const product = item.candidates[pick.cand];
+                const attributes = (product.options ? product.options.attributes : []).map((attribute) => ({
+                    id: attribute.id,
+                    code: attribute.code,
+                    label: attribute.label,
+                    options: attribute.options.map((option) => ({
+                        id: option.id,
+                        label: option.label,
+                        selected: pick.chosen[attribute.code] === option.label,
+                        available: this.isOptionAvailable(product, pick, attribute, option)
+                    }))
+                }));
+                const childId = this.childId(product, pick);
+                let prices = childId && product.options.prices[childId]
+                    ? product.options.prices[childId]
+                    : {finalPrice: product.finalPrice, regularPrice: product.regularPrice};
+                if (!childId && !(prices.finalPrice > 0)) {
+                    const childPrices = Object.values(product.options.prices || {}).filter((entry) => entry.finalPrice > 0);
+                    if (childPrices.length) {
+                        prices = childPrices.reduce((lowest, entry) => (entry.finalPrice < lowest.finalPrice ? entry : lowest));
+                    }
+                }
+                const regular = Math.max(prices.finalPrice, prices.regularPrice);
+                const included = item.type !== 'optional' || pick.included;
+                const sizeLabel = Object.values(pick.chosen).join(' / ');
+                const complete = attributes.every((attribute) => attribute.options.some((option) => option.selected));
+                let discounted = prices.finalPrice;
+                if (item.discount.type === 'percent') {
+                    discounted = prices.finalPrice * (1 - Math.min(Number(item.discount.amount), 100) / 100);
+                } else if (item.discount.type === 'fixed') {
+                    discounted = Math.max(0, prices.finalPrice - Number(item.discount.amount));
+                }
+                const delivery = this.variant.delivery[childId || product.productId] || null;
+                return {
+                    index: index,
+                    slotId: item.slotId,
+                    type: item.type,
+                    optional: item.type === 'optional',
+                    included: included,
+                    product: product,
+                    candidates: item.candidates,
+                    pick: pick,
+                    attributes: attributes,
+                    sizeLabel: sizeLabel,
+                    complete: complete,
+                    childId: childId,
+                    regular: regular,
+                    discounted: discounted,
+                    delivery: delivery
+                };
+            },
+
+            childId(product, pick) {
+                if (!product.options) {
+                    return null;
+                }
+                let candidates = null;
+                for (const attribute of product.options.attributes) {
+                    const option = attribute.options.find((entry) => entry.label === pick.chosen[attribute.code]);
+                    if (!option) {
+                        return null;
+                    }
+                    candidates = candidates === null
+                        ? option.products
+                        : candidates.filter((id) => option.products.includes(id));
+                }
+                return candidates && candidates.length ? candidates[0] : null;
+            },
+
+            isOptionAvailable(product, pick, attribute, option) {
+                return product.options.attributes.filter((other) => other.code !== attribute.code).every((other) => {
+                    const chosen = other.options.find((entry) => entry.label === pick.chosen[other.code]);
+                    return !chosen || chosen.products.some((id) => option.products.includes(id));
+                });
+            },
+
+            choose(index, attribute, option) {
+                if (!option.available) {
+                    return;
+                }
+                const pick = this.picks[index];
+                pick.chosen = Object.assign({}, pick.chosen, {[attribute.code]: option.label});
+            },
+
+            pickCandidate(index, candidate) {
+                this.picks[index] = {cand: candidate, chosen: {}, included: this.picks[index].included};
+                this.picks[index] = blankPicks({items: [this.variant.items[index]]}, [this.picks[index]])[0];
+            },
+
+            toggleIncluded(index) {
+                this.picks[index].included = !this.picks[index].included;
+            },
+
+            switchVariant(ruleId) {
+                const next = this.variants.find((variant) => variant.ruleId === ruleId);
+                if (!next || !next.available || ruleId === this.ruleId) {
+                    return;
+                }
+                const previous = this.picks.map((pick, index) => Object.assign({}, pick, {
+                    chosen: Object.assign({}, pick.chosen)
+                }));
+                this.ruleId = ruleId;
+                this.picks = blankPicks(next, previous);
+                this.photo = 0;
+                this.error = '';
+                window.history.replaceState({}, '', next.url);
+            },
+
+            get includedViews() {
+                return this.views.filter((view) => view.included);
+            },
+
+            get sumPrice() {
+                return this.includedViews.reduce((total, view) => total + view.regular, 0);
+            },
+
+            get setPrice() {
+                return this.includedViews.reduce((total, view) => total + view.discounted, 0);
+            },
+
+            get saving() {
+                return Math.max(0, this.sumPrice - this.setPrice);
+            },
+
+            get percent() {
+                return this.sumPrice > 0 ? Math.round(this.saving / this.sumPrice * 100) : 0;
+            },
+
+            get missing() {
+                return this.includedViews.filter((view) => !view.complete).length;
+            },
+
+            get buttonLabel() {
+                if (this.missing === 1) {
+                    return config.i18n.chooseSizesOne;
+                }
+                if (this.missing > 1) {
+                    return text(config.i18n.chooseSizes, this.missing);
+                }
+                return text(config.i18n.addSet, money(this.setPrice * this.qty));
+            },
+
+            get delivery() {
+                if (this.missing > 0) {
+                    return {tone: 'neutral', label: config.i18n.chooseSizesFirst};
+                }
+                const deliveries = this.includedViews.map((view) => view.delivery);
+                if (deliveries.every((delivery) => delivery && delivery.direct)) {
+                    return {tone: 'ok', label: config.i18n.allTomorrow};
+                }
+                const known = deliveries.filter((delivery) => delivery && delivery.maxDays !== null);
+                if (known.length) {
+                    const min = Math.max(...known.map((delivery) => delivery.minDays || delivery.maxDays));
+                    const max = Math.max(...known.map((delivery) => delivery.maxDays));
+                    return {
+                        tone: 'warning',
+                        label: min === max
+                            ? text(config.i18n.completeDays, max)
+                            : text(config.i18n.completeRange, min, max)
+                    };
+                }
+                return {tone: 'warning', label: config.i18n.completeLater};
+            },
+
+            get photos() {
+                return this.variant.images;
+            },
+
+            get tileColumns() {
+                const columns = {
+                    1: 'lg:grid-cols-1', 2: 'lg:grid-cols-2', 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4',
+                    5: 'lg:grid-cols-5', 6: 'lg:grid-cols-3', 7: 'lg:grid-cols-4', 8: 'lg:grid-cols-4',
+                    9: 'lg:grid-cols-5', 10: 'lg:grid-cols-5'
+                };
+                return columns[Math.min(this.views.length, 10)] || 'lg:grid-cols-5';
+            },
+
+            get tilePhotos() {
+                return this.views.map((view) => ({
+                    image: view.product.imageLarge || view.product.image,
+                    name: view.product.name,
+                    included: view.included
+                }));
+            },
+
+            money(value) {
+                return money(value);
+            },
+
+            async submit() {
+                if (this.missing > 0) {
+                    this.attempted = true;
+                }
+                if (this.missing > 0 || this.loading || !this.includedViews.length) {
+                    return;
+                }
+                this.loading = true;
+                this.error = '';
+                this.added = false;
+                const body = new FormData();
+                body.append('form_key', hyva.getFormKey());
+                body.append('rule_id', this.ruleId);
+                body.append('complete', '1');
+                body.append('qty', this.qty);
+                this.includedViews.forEach((view, position) => {
+                    body.append('items[' + position + '][slot_id]', view.slotId);
+                    body.append('items[' + position + '][product_id]', view.product.productId);
+                    view.attributes.forEach((attribute) => {
+                        const option = attribute.options.find((entry) => entry.selected);
+                        body.append(
+                            'items[' + position + '][super_attribute][' + attribute.id + ']',
+                            option.id
+                        );
+                    });
+                });
+                try {
+                    const response = await fetch(config.addUrl, {
+                        method: 'POST',
+                        body: body,
+                        headers: {'X-Requested-With': 'XMLHttpRequest'}
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        this.added = true;
+                        window.dispatchEvent(new CustomEvent('reload-customer-section-data'));
+                        this.notify('success', result.message || config.i18n.added);
+                    } else {
+                        this.error = result.message || config.i18n.error;
+                        this.notify('error', this.error);
+                    }
+                } catch (e) {
+                    this.error = config.i18n.error;
+                    this.notify('error', this.error);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            notify(type, message) {
+                if (typeof window.dispatchMessages !== 'undefined' && message) {
+                    window.dispatchMessages([{type: type, text: message}], 5000);
+                }
+            }
+        };
+    }
+</script>
+<?php $hyvaCsp->registerInlineScript() ?>
+<script type="application/ld+json"><?= /* @noEscape */ $page->getJsonLd() ?></script>
+
+<div class="fm-set-page text-fmbd-text bg-fmbd-bg pb-[76px] lg:pb-0" x-data="<?= /* @noEscape */ $uid ?>()">
+    <div class="mx-auto w-full max-w-wrap px-fmbd-4 lg:px-fmbd-5 pt-fmbd-4 pb-fmbd-8">
+        <nav aria-label="<?= $escaper->escapeHtmlAttr(__('Breadcrumb')) ?>" class="text-fmbd-sm text-fmbd-text-muted mb-fmbd-4">
+            <ol class="flex flex-wrap items-center gap-x-fmbd-2">
+                <?php foreach ($page->getBreadcrumbs() as $index => $crumb): ?>
+                    <li class="flex items-center gap-x-fmbd-2">
+                        <?php if ($index > 0): ?><span aria-hidden="true">/</span><?php endif; ?>
+                        <?php if ($crumb['url'] !== null): ?>
+                            <a href="<?= $escaper->escapeUrl($crumb['url']) ?>"
+                               class="hover:underline"><?= $escaper->escapeHtml($crumb['name']) ?></a>
+                        <?php else: ?>
+                            <span aria-current="page"><?= $escaper->escapeHtml($crumb['name']) ?></span>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+        </nav>
+
+        <div class="grid gap-fmbd-6 lg:grid-cols-[1fr_440px] lg:gap-fmbd-7 items-start">
+            <!-- Gallery -->
+            <div class="min-w-0">
+                <div class="relative rounded-fmbd-lg border border-fmbd-border bg-fmbd-surface-2 overflow-hidden">
+                    <div class="flex lg:hidden overflow-x-auto snap-x snap-mandatory scroll-smooth"
+                         role="group" aria-label="<?= $escaper->escapeHtmlAttr(__('Set photos')) ?>">
+                        <template x-for="(image, position) in photos" :key="ruleId + '-' + position">
+                            <div class="snap-center shrink-0 w-full aspect-[3/2] flex items-center justify-center">
+                                <img :src="image" alt="" width="600" height="400" class="h-full w-full object-contain"
+                                     :loading="position === 0 ? 'eager' : 'lazy'">
+                            </div>
+                        </template>
+                    </div>
+                    <div class="hidden lg:flex aspect-[3/2] items-center justify-center" aria-live="polite">
+                        <img :src="photos[photo] || photos[0]" alt="<?= $escaper->escapeHtmlAttr($page->getTitle()) ?>"
+                             width="900" height="600" class="h-full w-full object-contain">
+                    </div>
+                    <span class="absolute left-fmbd-4 top-fmbd-4 rounded-fmbd-md bg-fmbd-primary px-fmbd-3 py-fmbd-2
+                                 text-fmbd-sm font-bold text-fmbd-on-primary" x-show="percent > 0"
+                          x-text="percent > 0 ? text(<?= $escaper->escapeHtmlAttr(json_encode(
+                                  (string) __('-%1% on the set'),
+                                  $jsonFlags
+                              )) ?>, percent) : ''"><?= $escaper->escapeHtml(__('-%1% on the set', $percent)) ?></span>
+                    <span class="absolute right-fmbd-4 top-fmbd-4 rounded-fmbd-md bg-fmbd-surface-1 border border-fmbd-border
+                                 px-fmbd-3 py-fmbd-2 text-fmbd-sm font-bold"
+                          x-text="text(<?= $escaper->escapeHtmlAttr(json_encode((string) __('Set of %1'), $jsonFlags)) ?>, includedViews.length)"><?= $escaper->escapeHtml(__('Set of %1', count($items))) ?></span>
+                    <?php if ($colourDots): ?>
+                        <div class="absolute bottom-fmbd-3 right-fmbd-3 flex items-center rounded-full bg-fmbd-surface-1
+                                    border border-fmbd-border px-fmbd-1" role="group"
+                             aria-label="<?= $escaper->escapeHtmlAttr(__('Colour of the set')) ?>">
+                            <?= /* @noEscape */ $renderDots('fm-set-collage-dot-') ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <ul class="mt-fmbd-4 grid grid-cols-3 gap-fmbd-3 list-none p-0" :class="tileColumns">
+                    <template x-for="(tile, position) in tilePhotos" :key="ruleId + '-tile-' + position">
+                        <li>
+                            <button type="button"
+                                    class="block w-full rounded-fmbd-md border border-fmbd-border bg-fmbd-surface-2
+                                           overflow-hidden min-h-11 focus-visible:outline focus-visible:outline-2
+                                           focus-visible:outline-fmbd-focus"
+                                    :class="{'opacity-50': !tile.included, 'border-fmbd-text': photo === position}"
+                                    :aria-label="tile.name" @click="photo = position">
+                                <img :src="tile.image" alt="" width="200" height="200" loading="lazy"
+                                     class="w-full aspect-square object-contain">
+                            </button>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+
+            <!-- Buy column -->
+            <div class="min-w-0 lg:sticky lg:top-fmbd-5">
+                <?php if ($page->getBrand() !== ''): ?>
+                    <p class="text-fmbd-sm font-bold uppercase tracking-wide text-fmbd-text-muted mb-fmbd-2">
+                        <?= $escaper->escapeHtml($page->getBrand()) ?>
+                    </p>
+                <?php endif; ?>
+                <h1 class="text-fmbd-2xl font-bold leading-tight"><?= $escaper->escapeHtml($page->getTitle()) ?></h1>
+                <?php if ($summary['count'] > 0): ?>
+                    <p class="mt-fmbd-2 flex items-center gap-fmbd-2 text-fmbd-sm text-fmbd-text-muted">
+                        <span class="font-bold text-fmbd-text"><?= $escaper->escapeHtml(number_format($summary['average'], 1)) ?></span>
+                        <span aria-hidden="true" class="text-fmbd-rating">&#9733;</span>
+                        <a href="#fm-set-reviews" class="underline">
+                            <?= $escaper->escapeHtml(__('%1 reviews', $summary['count'])) ?>
+                        </a>
+                    </p>
+                <?php endif; ?>
+
+                <div class="mt-fmbd-4">
+                    <p class="text-[30px] lg:text-[34px] font-bold leading-none"
+                       x-text="money(setPrice)"><?= $escaper->escapeHtml($page->formatPrice($totals['setPrice'])) ?></p>
+                    <p class="mt-fmbd-2 text-fmbd-sm text-fmbd-text-muted">
+                        <span class="line-through" x-text="money(sumPrice)"><?= $escaper->escapeHtml($page->formatPrice($totals['sumPrice'])) ?></span>
+                        <span class="ml-fmbd-2 font-bold text-fmbd-discount" x-show="saving > 0"
+                              x-text="'<?= $escaper->escapeJs(__('You save')) ?> ' + money(saving)"><?= $escaper->escapeHtml(__('You save')) ?>
+                            <?= $escaper->escapeHtml($page->formatPrice($totals['saving'])) ?></span>
+                    </p>
+                </div>
+
+                <?php if ($colourDots): ?>
+                    <div class="mt-fmbd-5">
+                        <p class="text-fmbd-sm font-bold"><?= $escaper->escapeHtml(__('Colour of the set')) ?>:
+                            <span class="font-normal text-fmbd-text-muted"
+                                  x-text="variant.label"><?php foreach ($variants as $variant): ?><?= $variant['ruleId'] === $ruleId ? $escaper->escapeHtml($variant['label']) : '' ?><?php endforeach; ?></span>
+                        </p>
+                        <div class="mt-fmbd-1 -ml-fmbd-2 flex flex-wrap" role="group" aria-live="polite"
+                             aria-label="<?= $escaper->escapeHtmlAttr(__('Colour of the set')) ?>">
+                            <?= /* @noEscape */ $renderDots('fm-set-buy-dot-') ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <ul class="mt-fmbd-5 grid grid-cols-[minmax(0,1fr)] gap-fmbd-3 list-none p-0" aria-label="<?= $escaper->escapeHtmlAttr(__('Items in this set')) ?>">
+                    <template x-for="view in views" :key="ruleId + '-' + view.index">
+                        <li class="rounded-fmbd-md border border-fmbd-border bg-fmbd-surface-1 p-fmbd-3"
+                            :class="{'opacity-60': !view.included}">
+                            <div class="flex gap-fmbd-3 lg:flex-col">
+                                <img :src="view.product.image" alt="" width="64" height="64" loading="lazy"
+                                     class="h-16 w-16 shrink-0 rounded-fmbd-sm border border-fmbd-border object-contain bg-fmbd-surface-2">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-fmbd-sm font-bold leading-snug" x-text="view.product.name"></p>
+                                    <p class="text-fmbd-xs text-fmbd-text-muted"
+                                       x-show="view.included && (variant.label || view.sizeLabel)"
+                                       x-text="[variant.label, view.sizeLabel].filter(Boolean).join(' / ')"></p>
+                                    <p class="text-fmbd-xs font-bold text-fmbd-text-muted" x-show="view.optional"
+                                       x-text="'<?= $escaper->escapeJs(__('Optional')) ?>'"></p>
+                                </div>
+                                <p class="text-right text-fmbd-sm shrink-0 lg:text-left">
+                                    <span class="block font-bold" x-text="money(view.discounted)"></span>
+                                    <span class="block text-fmbd-xs text-fmbd-text-muted line-through"
+                                          x-text="money(view.regular)"></span>
+                                </p>
+                            </div>
+
+                            <label class="mt-fmbd-2 flex min-h-11 items-center gap-fmbd-3 cursor-pointer text-fmbd-sm"
+                                   x-show="view.optional">
+                                <input type="checkbox" class="h-6 w-6 shrink-0 accent-fmbd-primary"
+                                       :checked="view.included" @change="toggleIncluded(view.index)">
+                                <span><?= $escaper->escapeHtml(__('Include in the set')) ?></span>
+                            </label>
+
+                            <div class="mt-fmbd-3" x-show="view.included && view.candidates.length > 1">
+                                <p class="fmbd-options__legend mb-fmbd-2">
+                                    <?= $escaper->escapeHtml(__('Colour')) ?>:
+                                    <strong x-text="view.candidates[view.pick.cand] ? (view.candidates[view.pick.cand].colour || view.candidates[view.pick.cand].name) : ''"></strong>
+                                </p>
+                                <ul class="fmbd-row-slider__track" style="--fmbd-rows: 1">
+                                    <template x-for="(candidate, position) in view.candidates" :key="candidate.productId">
+                                        <li class="fmbd-row-slider__item">
+                                            <button type="button"
+                                                    class="block rounded-fmbd-md p-fmbd-1 focus-visible:outline focus-visible:outline-2
+                                                           focus-visible:outline-fmbd-focus"
+                                                    :class="view.pick.cand === position
+                                                        ? 'border-2 border-fmbd-text'
+                                                        : 'border border-fmbd-border hover:border-fmbd-border-strong'"
+                                                    :aria-pressed="view.pick.cand === position ? 'true' : 'false'"
+                                                    :title="candidate.colour || candidate.name"
+                                                    @click="pickCandidate(view.index, position)">
+                                                <img :src="candidate.image" alt="" width="64" height="64" loading="lazy"
+                                                     class="block h-16 w-16 object-contain">
+                                                <span class="sr-only" x-text="candidate.colour || candidate.name"></span>
+                                            </button>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+
+                            <template x-for="attribute in view.attributes" :key="attribute.code">
+                                <div class="mt-fmbd-3" x-show="view.included" role="group" :aria-label="attribute.label">
+                                    <p class="fmbd-options__legend mb-fmbd-2" x-text="attribute.label + ':'"></p>
+                                    <ul class="fmbd-row-slider__track" style="--fmbd-rows: 1">
+                                        <template x-for="option in attribute.options" :key="option.id">
+                                            <li class="fmbd-row-slider__item">
+                                                <button type="button"
+                                                        class="fmbd-option__btn min-w-12 focus-visible:outline focus-visible:outline-2
+                                                               focus-visible:outline-fmbd-focus"
+                                                        :class="[
+                                                            option.selected ? 'border-2 border-fmbd-text font-semibold' : '',
+                                                            (!option.selected && attempted && !view.complete) ? 'border-fmbd-error' : '',
+                                                            option.available ? '' : 'bg-fmbd-disabled-bg text-fmbd-disabled-text line-through cursor-not-allowed'
+                                                        ]"
+                                                        :aria-pressed="option.selected ? 'true' : 'false'"
+                                                        :aria-disabled="option.available ? 'false' : 'true'"
+                                                        x-text="option.label"
+                                                        @click="choose(view.index, attribute, option)"></button>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </template>
+
+                            <p class="mt-fmbd-2 text-fmbd-xs text-fmbd-text-muted"
+                               x-show="view.included && view.delivery && view.complete"
+                               x-text="view.delivery ? view.delivery.label : ''"></p>
+                        </li>
+                    </template>
+                </ul>
+
+                <noscript>
+                    <ul class="mt-fmbd-5 list-none p-0 grid gap-fmbd-2">
+                        <?php foreach ($items as $item): ?>
+                            <li class="text-fmbd-sm"><?= $escaper->escapeHtml($item['candidates'][0]['name']) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </noscript>
+
+                <div class="mt-fmbd-4 rounded-fmbd-md px-fmbd-4 py-fmbd-3 text-fmbd-sm font-bold"
+                     :class="{
+                         'bg-fmbd-ok-bg text-fmbd-ok': delivery.tone === 'ok',
+                         'bg-fmbd-warning-bg text-fmbd-warning': delivery.tone === 'warning',
+                         'bg-fmbd-surface-3 text-fmbd-text-muted': delivery.tone === 'neutral'
+                     }"
+                     role="status" x-text="delivery.label"></div>
+
+                <div class="mt-fmbd-4 flex items-center gap-fmbd-3" x-cloak>
+                    <div class="inline-flex items-center rounded-fmbd-md border border-fmbd-border-strong"
+                         role="group" aria-label="<?= $escaper->escapeHtmlAttr(__('Quantity')) ?>">
+                        <button type="button" class="h-11 w-11 text-fmbd-lg" @click="qty = Math.max(1, qty - 1)"
+                                aria-label="<?= $escaper->escapeHtmlAttr(__('Decrease quantity')) ?>">&minus;</button>
+                        <span class="w-8 text-center font-bold" x-text="qty" aria-live="polite"></span>
+                        <button type="button" class="h-11 w-11 text-fmbd-lg" @click="qty = Math.min(10, qty + 1)"
+                                aria-label="<?= $escaper->escapeHtmlAttr(__('Increase quantity')) ?>">+</button>
+                    </div>
+                    <button type="button" data-fm-set-buy
+                            class="min-h-[52px] lg:min-h-12 flex-1 rounded-fmbd-md px-fmbd-4 text-fmbd-base font-bold
+                                   focus-visible:outline focus-visible:outline-2 focus-visible:outline-fmbd-focus"
+                            :class="missing > 0 ? 'bg-fmbd-disabled-bg text-fmbd-disabled-text cursor-not-allowed'
+                                                : 'bg-fmbd-cta text-fmbd-on-cta'"
+                            :aria-disabled="missing > 0 ? 'true' : 'false'"
+                            :disabled="loading"
+                            x-text="buttonLabel"
+                            @click="submit()"></button>
+                </div>
+                <p class="mt-fmbd-2 text-fmbd-sm text-fmbd-error" role="alert" x-show="error" x-text="error"></p>
+                <p class="mt-fmbd-2 text-fmbd-sm text-fmbd-ok" role="status" x-show="added">
+                    <?= $escaper->escapeHtml($texts->get('set_added')) ?>
+                </p>
+
+                <p class="mt-fmbd-3 text-fmbd-xs text-fmbd-text-muted">
+                    <?= $escaper->escapeHtml($texts->get('set_explanation')) ?>
+                </p>
+
+                <?php if ($texts->getUsps()): ?>
+                    <ul class="mt-fmbd-4 grid gap-fmbd-2 list-none p-0 rounded-fmbd-md bg-fmbd-usp-bg p-fmbd-3 text-fmbd-sm text-fmbd-usp-text">
+                        <?php foreach ($texts->getUsps() as $usp): ?>
+                            <li><?= $escaper->escapeHtml($usp) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Below the fold -->
+        <section class="mt-fmbd-8" aria-labelledby="fm-set-items-title">
+            <h2 id="fm-set-items-title" class="text-fmbd-xl font-bold"><?= $escaper->escapeHtml(__('What is in the set')) ?></h2>
+            <div class="mt-fmbd-4 overflow-x-auto rounded-fmbd-md border border-fmbd-border">
+                <table class="w-full text-fmbd-sm">
+                    <thead class="bg-fmbd-surface-2 text-left">
+                        <tr>
+                            <th scope="col" class="p-fmbd-3"><?= $escaper->escapeHtml(__('Item')) ?></th>
+                            <th scope="col" class="p-fmbd-3 text-right"><?= $escaper->escapeHtml(__('Separate price')) ?></th>
+                            <th scope="col" class="p-fmbd-3 text-right"><?= $escaper->escapeHtml(__('Price in the set')) ?></th>
+                            <th scope="col" class="p-fmbd-3 text-right"><?= $escaper->escapeHtml(__('You save')) ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="view in views" :key="ruleId + '-row-' + view.index">
+                            <tr class="border-t border-fmbd-border" :class="{'opacity-50': !view.included}">
+                                <td class="p-fmbd-3">
+                                    <a :href="view.product.url" class="underline" x-text="view.product.name"></a>
+                                </td>
+                                <td class="p-fmbd-3 text-right" x-text="money(view.regular)"></td>
+                                <td class="p-fmbd-3 text-right font-bold" x-text="money(view.discounted)"></td>
+                                <td class="p-fmbd-3 text-right text-fmbd-discount"
+                                    x-text="money(Math.max(0, view.regular - view.discounted))"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="mt-fmbd-7 grid gap-fmbd-3" aria-label="<?= $escaper->escapeHtmlAttr(__('More information')) ?>">
+            <?php
+            $accordions = [];
+            if ($description !== '') {
+                $accordions[] = [__('Description'), '<p>' . nl2br($escaper->escapeHtml($description)) . '</p>'];
+            }
+            $specs = '<ul class="list-disc pl-fmbd-5">';
+            foreach ($items as $item) {
+                $specs .= '<li>' . $escaper->escapeHtml($item['candidates'][0]['name']) . '</li>';
+            }
+            $accordions[] = [__('Specifications'), $specs . '</ul>'];
+            if ($sizeHtml !== '') {
+                $accordions[] = [__('Size advice'), $sizeHtml];
+            }
+            $shipping = '';
+            if ($info['deliveryText'] !== '') {
+                $shipping .= '<p>' . nl2br($escaper->escapeHtml($info['deliveryText'])) . '</p>';
+            }
+            $shipping .= $deliveryHtml;
+            if ($shipping !== '') {
+                $accordions[] = [__('Delivery'), $shipping];
+            }
+            $returns = '';
+            if ($info['returnText'] !== '') {
+                $returns .= '<p>' . nl2br($escaper->escapeHtml($info['returnText'])) . '</p>';
+            }
+            $returns .= $returnHtml;
+            if ($returns !== '') {
+                $accordions[] = [__('Returns'), $returns];
+            }
+            ?>
+            <?php foreach ($accordions as [$accordionTitle, $accordionHtml]): ?>
+                <details class="group rounded-fmbd-md border border-fmbd-border bg-fmbd-surface-1">
+                    <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between p-fmbd-4
+                                    font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-fmbd-focus">
+                        <?= $escaper->escapeHtml($accordionTitle) ?>
+                        <span aria-hidden="true" class="group-open:rotate-180 transition-transform">&#9662;</span>
+                    </summary>
+                    <div class="px-fmbd-4 pb-fmbd-4 text-fmbd-sm"><?= /* @noEscape */ $accordionHtml ?></div>
+                </details>
+            <?php endforeach; ?>
+        </section>
+
+        <?php if ($reviews): ?>
+            <section id="fm-set-reviews" class="mt-fmbd-7" aria-labelledby="fm-set-reviews-title">
+                <h2 id="fm-set-reviews-title" class="text-fmbd-xl font-bold">
+                    <?= $escaper->escapeHtml(__('Reviews of the items')) ?>
+                </h2>
+                <ul class="mt-fmbd-4 grid gap-fmbd-3 md:grid-cols-2 list-none p-0">
+                    <?php foreach ($reviews as $review): ?>
+                        <li class="rounded-fmbd-md border border-fmbd-border bg-fmbd-surface-1 p-fmbd-4 text-fmbd-sm">
+                            <p class="font-bold">
+                                <span class="text-fmbd-rating" aria-hidden="true">&#9733;</span>
+                                <?= $escaper->escapeHtml(number_format($review['stars'], 1)) ?>
+                                <?= $escaper->escapeHtml($review['title']) ?>
+                            </p>
+                            <p class="mt-fmbd-1"><?= $escaper->escapeHtml($review['detail']) ?></p>
+                            <p class="mt-fmbd-2 text-fmbd-xs text-fmbd-text-muted">
+                                <?= $escaper->escapeHtml($review['nickname']) ?>
+                                - <?= $escaper->escapeHtml($review['productName']) ?>
+                            </p>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($moreSets): ?>
+            <section class="mt-fmbd-7" aria-labelledby="fm-set-more-title">
+                <h2 id="fm-set-more-title" class="text-fmbd-xl font-bold"><?= $escaper->escapeHtml(__('More sets for you')) ?></h2>
+                <ul class="mt-fmbd-4 grid grid-cols-2 gap-fmbd-3 lg:grid-cols-4 list-none p-0">
+                    <?php foreach ($moreSets as $card): ?>
+                        <li class="rounded-fmbd-lg border border-fmbd-border bg-fmbd-surface-1 overflow-hidden">
+                            <a href="<?= $escaper->escapeUrl($card['url']) ?>" class="block focus-visible:outline
+                               focus-visible:outline-2 focus-visible:outline-fmbd-focus">
+                                <?php if (!empty($card['images'][0])): ?>
+                                    <img src="<?= $escaper->escapeUrl($card['images'][0]) ?>" alt="" width="300" height="200"
+                                         loading="lazy" class="w-full aspect-[3/2] object-contain bg-fmbd-surface-2">
+                                <?php endif; ?>
+                                <span class="block p-fmbd-3">
+                                    <span class="block text-fmbd-sm font-bold leading-snug"><?= $escaper->escapeHtml($card['title']) ?></span>
+                                    <span class="mt-fmbd-1 block text-fmbd-xs text-fmbd-text-muted">
+                                        <?= $escaper->escapeHtml(__('Set of %1', $card['itemCount'])) ?>
+                                    </span>
+                                    <span class="mt-fmbd-1 block font-bold"><?= $escaper->escapeHtml($page->formatPrice((float) $card['setPrice'])) ?></span>
+                                    <span class="block text-fmbd-xs text-fmbd-text-muted line-through">
+                                        <?= $escaper->escapeHtml($page->formatPrice((float) $card['sumPrice'])) ?>
+                                    </span>
+                                </span>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </section>
+        <?php endif; ?>
+    </div>
+
+    <?php if ($config['sticky']): ?>
+        <div class="hidden lg:block fixed inset-x-0 bottom-0 z-30 border-t border-fmbd-border bg-fmbd-surface-1"
+             x-show="stickyVisible" x-cloak>
+            <div class="mx-auto flex max-w-wrap items-center justify-between gap-fmbd-4 px-fmbd-5 py-fmbd-3">
+                <p class="font-bold"><?= $escaper->escapeHtml($page->getTitle()) ?>
+                    <span class="ml-fmbd-3" x-text="money(setPrice)"></span></p>
+                <button type="button" class="min-h-12 rounded-fmbd-md px-fmbd-5 font-bold"
+                        :class="missing > 0 ? 'bg-fmbd-disabled-bg text-fmbd-disabled-text' : 'bg-fmbd-cta text-fmbd-on-cta'"
+                        :aria-disabled="missing > 0 ? 'true' : 'false'" x-text="buttonLabel" @click="submit()"></button>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="lg:hidden fixed inset-x-0 bottom-0 z-30 border-t border-fmbd-border bg-fmbd-surface-1 p-fmbd-3">
+        <button type="button" class="min-h-[52px] w-full rounded-fmbd-md px-fmbd-4 font-bold"
+                :class="missing > 0 ? 'bg-fmbd-disabled-bg text-fmbd-disabled-text' : 'bg-fmbd-cta text-fmbd-on-cta'"
+                :aria-disabled="missing > 0 ? 'true' : 'false'" x-text="buttonLabel" @click="submit()"></button>
+    </div>
+</div>

@@ -1,0 +1,375 @@
+<?php
+
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+
+/**
+ * Cart page block with the bundle deal products that complete a set the cart has started. Each product is added on
+ * its own; the page reloads afterwards so the totals show the set discount.
+ */
+declare(strict_types=1);
+
+use FalconMedia\BundleDeals\Block\Cart\MissingMembers;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Magento\Framework\Escaper;
+
+/**
+ * @var MissingMembers $block
+ */
+/**
+ * @var Escaper $escaper
+ */
+/**
+ * @var HyvaCsp $hyvaCsp
+ */
+
+$texts = $block->getData('texts');
+
+$bundles = $block->getBundles();
+if (!$bundles) {
+    return;
+}
+
+$uid = 'fmBundleMissing_' . substr(hash('sha256', (string) $block->getNameInLayout()), 0, 12);
+$config = [
+    'bundles' => $bundles,
+    'addUrl' => $block->getAddUrl(),
+    'i18n' => [
+        'choose' => (string) __('Choose %1 for %2'),
+        'error' => (string) __('We can\'t add this product to your shopping cart right now.'),
+        'from' => (string) __('From %1'),
+        'percentOff' => (string) __('-%1% in bundle'),
+        'fixedOff' => (string) __('-%1 in bundle'),
+    ],
+];
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE;
+?>
+<script>
+    function <?= /* @noEscape */ $uid ?>() {
+        const config = <?= /* @noEscape */ json_encode($config, $jsonFlags) ?>;
+        const selections = {};
+        config.bundles.forEach((bundle) => {
+            bundle.slots.forEach((slot) => {
+                slot.candidates.forEach((product) => {
+                    const choice = {};
+                    (product.options ? product.options.attributes : []).forEach((attribute) => {
+                        choice[attribute.id] = attribute.options.length === 1 ? attribute.options[0].id : '';
+                    });
+                    selections[slot.slotId + '_' + product.productId] = choice;
+                });
+            });
+        });
+
+        return {
+            bundles: config.bundles.map((bundle) => Object.assign({}, bundle, {
+                slots: bundle.slots.map((slot) => Object.assign({}, slot, {selected: 0, open: false}))
+            })),
+            selections: selections,
+            errors: {},
+            loading: null,
+
+            key(slot, product) {
+                return slot.slotId + '_' + product.productId;
+            },
+
+            product(slot) {
+                return slot.candidates[slot.selected];
+            },
+
+            pick(slot, index) {
+                slot.selected = index;
+                slot.open = false;
+                delete this.errors[slot.slotId];
+            },
+
+            isSelected(slot, product, attributeId, optionId) {
+                return this.selections[this.key(slot, product)][attributeId] === optionId;
+            },
+
+            choose(slot, product, attributeId, optionId) {
+                this.selections[this.key(slot, product)][attributeId] = optionId;
+                delete this.errors[slot.slotId];
+            },
+
+            isAvailable(slot, product, attributeId, option) {
+                const choice = this.selections[this.key(slot, product)];
+                return option.products.some((childId) => {
+                    const values = product.options.index[childId] || {};
+                    return Object.keys(choice).every(
+                        (id) => id === attributeId || !choice[id] || values[id] === choice[id]
+                    );
+                });
+            },
+
+            childId(slot, product) {
+                if (!product.options) {
+                    return null;
+                }
+                const choice = this.selections[this.key(slot, product)];
+                if (Object.values(choice).some((value) => !value)) {
+                    return null;
+                }
+                return Object.keys(product.options.index).find((childId) => {
+                    const values = product.options.index[childId];
+                    return Object.keys(choice).every((id) => values[id] === choice[id]);
+                }) || null;
+            },
+
+            prices(slot, product) {
+                const childId = this.childId(slot, product);
+                const price = childId && product.options.prices[childId]
+                    ? product.options.prices[childId]
+                    : {finalPrice: product.finalPrice, regularPrice: product.regularPrice};
+                return {
+                    finalPrice: price.finalPrice,
+                    regularPrice: Math.max(price.regularPrice || 0, price.finalPrice)
+                };
+            },
+
+            isPriceRange(slot, product) {
+                if (!product.options || this.childId(slot, product)) {
+                    return false;
+                }
+                const values = Object.values(product.options.prices).map((price) => price.finalPrice);
+                return values.length > 1 && Math.min(...values) !== Math.max(...values);
+            },
+
+            bundlePrice(slot, product) {
+                const prices = this.prices(slot, product);
+                const finalPrice = prices.finalPrice;
+                if (slot.discount.excludeSpecialPrice && finalPrice < prices.regularPrice) {
+                    return finalPrice;
+                }
+                const amount = Number(slot.discount.amount) || 0;
+                if (slot.discount.type === 'percent') {
+                    return Math.max(0, finalPrice - finalPrice * amount / 100);
+                }
+                if (slot.discount.type === 'fixed') {
+                    return Math.max(0, finalPrice - amount);
+                }
+                return finalPrice;
+            },
+
+            hasDiscount(slot) {
+                return slot.discount.type !== 'none' && Number(slot.discount.amount) > 0;
+            },
+
+            discountLabel(slot) {
+                if (slot.discount.type === 'percent') {
+                    return config.i18n.percentOff.replace('%1', Number(slot.discount.amount).toLocaleString());
+                }
+                return config.i18n.fixedOff.replace('%1', hyva.formatPrice(Number(slot.discount.amount)));
+            },
+
+            format(value) {
+                return hyva.formatPrice(value);
+            },
+
+            formatFrom(slot, product) {
+                const price = this.format(this.bundlePrice(slot, product));
+                return this.isPriceRange(slot, product) ? config.i18n.from.replace('%1', price) : price;
+            },
+
+            missing(slot) {
+                const product = this.product(slot);
+                if (!product.options) {
+                    return [];
+                }
+                const choice = this.selections[this.key(slot, product)];
+                return product.options.attributes
+                    .filter((attribute) => !choice[attribute.id])
+                    .map((attribute) => config.i18n.choose
+                        .replace('%1', attribute.label.toLowerCase())
+                        .replace('%2', product.name));
+            },
+
+            async add(bundle, slot) {
+                if (this.missing(slot).length || this.loading) {
+                    return;
+                }
+                this.loading = slot.slotId;
+                delete this.errors[slot.slotId];
+
+                const product = this.product(slot);
+                const body = new FormData();
+                body.append('form_key', hyva.getFormKey());
+                body.append('rule_id', bundle.ruleId);
+                body.append('complete', '0');
+                body.append('items[0][slot_id]', slot.slotId);
+                body.append('items[0][product_id]', product.productId);
+                const choice = this.selections[this.key(slot, product)];
+                Object.keys(choice).forEach((attributeId) => {
+                    body.append('items[0][super_attribute][' + attributeId + ']', choice[attributeId]);
+                });
+
+                try {
+                    const response = await fetch(config.addUrl, {
+                        method: 'POST',
+                        body: body,
+                        headers: {'X-Requested-With': 'XMLHttpRequest'}
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        window.location.reload();
+                        return;
+                    }
+                    const slotError = (result.errors || []).find((error) => error.slotId);
+                    this.errors[slot.slotId] = slotError ? slotError.message : (result.message || config.i18n.error);
+                } catch (e) {
+                    this.errors[slot.slotId] = config.i18n.error;
+                }
+                this.loading = null;
+            }
+        };
+    }
+</script>
+<?php $hyvaCsp->registerInlineScript() ?>
+
+<section class="fm-bundle-missing my-fmbd-6 text-base text-fmbd-text"
+         aria-labelledby="<?= $escaper->escapeHtmlAttr($uid) ?>_title"
+         x-data="<?= /* @noEscape */ $uid ?>()"
+>
+    <h2 id="<?= $escaper->escapeHtmlAttr($uid) ?>_title" class="m-0 mb-fmbd-4 text-fmbd-xl font-semibold">
+        <?= $escaper->escapeHtml($texts->get('cart_title')) ?>
+    </h2>
+
+    <template x-for="bundle in bundles" :key="bundle.ruleId">
+        <div class="mb-fmbd-5">
+            <p class="m-0 mb-fmbd-3 text-sm text-fmbd-text-muted">
+                <span class="font-semibold text-fmbd-text" x-text="bundle.title"></span>:
+                <?= $escaper->escapeHtml($texts->get('cart_hint')) ?>
+            </p>
+            <ul class="m-0 p-0 list-none grid gap-fmbd-4 md:grid-cols-2">
+                <template x-for="slot in bundle.slots" :key="slot.slotId">
+                    <li class="flex flex-col gap-fmbd-3 rounded-fmbd-lg border border-fmbd-border bg-fmbd-surface-1 p-fmbd-4">
+                        <div class="flex gap-fmbd-4 items-start">
+                            <img :src="product(slot).image" :alt="product(slot).name"
+                                 width="80" height="80" loading="lazy"
+                                 class="shrink-0 w-20 h-20 object-contain rounded-fmbd-md bg-white border
+                                     border-fmbd-border">
+                            <div class="min-w-0 flex-1 flex flex-col gap-fmbd-1">
+                                <p class="m-0 flex flex-wrap items-center gap-fmbd-2 text-fmbd-xs text-fmbd-text-muted">
+                                    <span x-text="slot.title"></span>
+                                    <template x-if="hasDiscount(slot)">
+                                        <span class="rounded-full bg-fmbd-discount-bg px-2 py-0.5 font-semibold
+                                            text-fmbd-discount"
+                                              x-text="discountLabel(slot)"></span>
+                                    </template>
+                                </p>
+                                <a :href="product(slot).url"
+                                   class="font-medium leading-snug text-fmbd-text underline-offset-4 hover:underline"
+                                   x-text="product(slot).name"></a>
+                                <p class="m-0 flex flex-wrap items-baseline gap-fmbd-2 fmbd-num">
+                                    <span class="font-semibold"
+                                          :class="bundlePrice(slot, product(slot)) < prices(slot,
+                                              product(slot)).regularPrice ? 'text-fmbd-primary' : ''"
+                                          x-text="formatFrom(slot, product(slot))"></span>
+                                    <template x-if="bundlePrice(slot, product(slot)) < prices(slot,
+                                        product(slot)).regularPrice">
+                                        <span class="text-sm text-fmbd-text-muted line-through">
+                                            <span class="sr-only"><?= $escaper->escapeHtml(
+                                                __('Regular price')
+                                            ) ?></span>
+                                            <span x-text="format(prices(slot, product(slot)).regularPrice)"></span>
+                                        </span>
+                                    </template>
+                                </p>
+                            </div>
+                        </div>
+
+                        <template x-if="slot.candidates.length > 1">
+                            <div>
+                                <button type="button"
+                                        class="inline-flex items-center gap-fmbd-1 min-h-a11y text-sm font-medium
+                                            underline underline-offset-4 rounded-fmbd-sm focus:outline-none
+                                            focus-visible:ring-2 focus-visible:ring-fmbd-focus"
+                                        :aria-expanded="slot.open ? 'true' : 'false'"
+                                        @click="slot.open = !slot.open"
+                                >
+                                    <?= $escaper->escapeHtml(__('Choose another')) ?>
+                                </button>
+                                <ul x-show="slot.open" x-cloak
+                                    class="m-0 mt-fmbd-2 p-0 list-none flex flex-col gap-fmbd-2 max-h-64 overflow-y-auto"
+                                    :aria-label="slot.title"
+                                >
+                                    <template x-for="(candidate, candidateIndex) in slot.candidates"
+                                        :key="candidate.productId">
+                                        <li>
+                                            <button type="button"
+                                                    class="w-full flex items-center gap-fmbd-3 rounded-fmbd-md border
+                                                        bg-fmbd-bg p-fmbd-2 text-left hover:border-fmbd-border-strong
+                                                        focus:outline-none focus-visible:ring-2
+                                                        focus-visible:ring-fmbd-focus"
+                                                    :class="candidateIndex === slot.selected ?
+                                                        'border-2 border-fmbd-text' : 'border-fmbd-border'"
+                                                    :aria-pressed="candidateIndex === slot.selected ? 'true' : 'false'"
+                                                    @click="pick(slot, candidateIndex)"
+                                            >
+                                                <img :src="candidate.image" alt="" width="40" height="40" loading="lazy"
+                                                     class="shrink-0 w-10 h-10 object-contain rounded-fmbd-sm bg-white">
+                                                <span class="min-w-0 flex-1 text-sm leading-snug"
+                                                    x-text="candidate.name"></span>
+                                                <span class="shrink-0 text-sm font-semibold fmbd-num"
+                                                      x-text="formatFrom(slot, candidate)"></span>
+                                            </button>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
+
+                        <template x-if="product(slot).options">
+                            <div class="flex flex-col gap-fmbd-3">
+                                <template x-for="attribute in product(slot).options.attributes" :key="attribute.id">
+                                    <fieldset class="fmbd-options">
+                                        <legend class="mb-fmbd-2 text-sm text-fmbd-text" x-text="attribute.label"></legend>
+                                        <div class="grid grid-cols-4 sm:grid-cols-5 gap-fmbd-2">
+                                            <template x-for="option in attribute.options" :key="option.id">
+                                                <label class="fmbd-option">
+                                                    <input type="radio"
+                                                           class="fmbd-option__input peer sr-only"
+                                                           :name="'<?= /* @noEscape */ $uid ?>_' + slot.slotId + '_' +
+                                                               product(slot).productId + '_' + attribute.id"
+                                                           :value="option.id"
+                                                           :checked="isSelected(slot, product(slot), attribute.id,
+                                                               option.id)"
+                                                           :disabled="!isAvailable(slot, product(slot), attribute.id,
+                                                               option)"
+                                                           @change="choose(slot, product(slot), attribute.id,
+                                                               option.id)"
+                                                    >
+                                                    <span class="fmbd-option__btn" x-text="option.label"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </fieldset>
+                                </template>
+                            </div>
+                        </template>
+
+                        <p x-show="errors[slot.slotId]" x-cloak role="alert"
+                           class="m-0 rounded-fmbd-md bg-fmbd-error-bg px-fmbd-3 py-fmbd-2 text-sm text-fmbd-error"
+                           x-text="errors[slot.slotId]"></p>
+
+                        <button type="button"
+                                class="fmbd-btn fmbd-btn--inverse w-full mt-auto disabled:opacity-50
+                                    disabled:cursor-not-allowed"
+                                :disabled="missing(slot).length > 0 || loading !== null"
+                                :title="missing(slot).join(', ') || null"
+                                :aria-busy="loading === slot.slotId ? 'true' : 'false'"
+                                @click="add(bundle, slot)"
+                        >
+                            <span x-show="loading !== slot.slotId"><?= $escaper->escapeHtml(__('Add to Cart')) ?></span>
+                            <span x-show="loading ===
+                                slot.slotId" x-cloak><?= $escaper->escapeHtml(__('Adding...')) ?></span>
+                        </button>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </template>
+</section>

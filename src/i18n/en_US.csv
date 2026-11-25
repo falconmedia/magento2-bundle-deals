@@ -1,0 +1,326 @@
+%1 off,%1 off
+%1%,%1%
+%1: %2,%1: %2
+%1: New Slot,%1: New Slot
+-%1 in bundle,-%1 in bundle
+-%1% in bundle,-%1% in bundle
+A bundle deal needs at least two slots before it is shown.,A bundle deal needs at least two slots before it is shown.
+A percentage cannot be more than 100.,A percentage cannot be more than 100.
+A percentage discount cannot be more than 100.,A percentage discount cannot be more than 100.
+A total of %1 bundle deal(s) have been deleted.,A total of %1 bundle deal(s) have been deleted.
+Above the product details,Above the product details
+Action,Action
+Active,Active
+Add bundle to cart,Add bundle to cart
+Add New Bundle Deal,Add New Bundle Deal
+Add Slot,Add Slot
+Add to Cart,Add to Cart
+Adding...,Adding...
+Also valid on bundle deal items,Also valid on bundle deal items
+"Always include, entry as set on the slot","Always include, entry as set on the slot"
+"Always include, not as entry","Always include, not as entry"
+"Always include, use as entry","Always include, use as entry"
+Applied to this slot's item when the complete set is in the cart.,Applied to this slot's item when the complete set is in the cart.
+Are you sure you want to delete the bundle deal %1?,Are you sure you want to delete the bundle deal %1?
+Are you sure you want to delete the selected bundle deals?,Are you sure you want to delete the selected bundle deals?
+Are you sure you want to delete this bundle deal and its slots?,Are you sure you want to delete this bundle deal and its slots?
+Are you sure you want to delete this slot?,Are you sure you want to delete this slot?
+Automatic (conditions),Automatic (conditions)
+Automatic: the product is in a slot when it matches the slot conditions. Always include: the product is in the slot regardless of the conditions.,Automatic: the product is in a slot when it matches the slot conditions. Always include: the product is in the slot regardless of the conditions.
+Back,Back
+Back to Bundle Deal,Back to Bundle Deal
+Below the add to cart button,Below the add to cart button
+Below the product details,Below the product details
+Block Title,Block Title
+Bundle Deal,Bundle Deal
+Bundle Deal Product Links,Bundle Deal Product Links
+Bundle deal set complete in cart,Bundle deal set complete in cart
+Bundle Deals,Bundle Deals
+Bundle deals,Bundle deals
+Bundle deals are managed under Marketing > Promotions > Bundle Deals. Every slot with a discount gets a generated cart price rule.,Bundle deals are managed under Marketing > Promotions > Bundle Deals. Every slot with a discount gets a generated cart price rule.
+Bundle Deals Overview,Bundle Deals Overview
+Bundle Deals Settings,Bundle Deals Settings
+Choose %1 for %2,Choose %1 for %2
+Choose a product for every part of the bundle deal.,Choose a product for every part of the bundle deal.
+Choose another,Choose another
+complete the set and get the bundle discount.,complete the set and get the bundle discount.
+Compose bundle,Compose bundle
+Conditions,Conditions
+Currently in this slot.,Currently in this slot.
+Currently not in this slot.,Currently not in this slot.
+Delete,Delete
+Delete %1,Delete %1
+Delete Bundle Deal,Delete Bundle Deal
+Delete Bundle Deals,Delete Bundle Deals
+Delete Slot,Delete Slot
+Discount,Discount
+Discount Amount,Discount Amount
+Edit,Edit
+Edit bundle deal %1,Edit bundle deal %1
+Enabled,Enabled
+Exclude from other discounts,Exclude from other discounts
+Exclude from Other Discounts,Exclude from Other Discounts
+Fixed amount off per item,Fixed amount off per item
+Frequently bought together,Frequently bought together
+From,From
+From %1,From %1
+General,General
+Heading of the bundle block on the product page. Leave empty to use the default block title.,Heading of the bundle block on the product page. Leave empty to use the default block title.
+ID,ID
+Indexed Products,Indexed Products
+is,is
+is not,is not
+Item belongs to complete bundle deal set,Item belongs to complete bundle deal set
+List of the active bundle deals with their products and discount,List of the active bundle deals with their products and discount
+Lower number wins. Decides which bundle deal is shown by default on a product page that is an entry for more than one deal.,Lower number wins. Decides which bundle deal is shown by default on a product page that is an entry for more than one deal.
+Manage bundle deals,Manage bundle deals
+"Manual position, then name","Manual position, then name"
+Maximum Alternatives per Slot,Maximum Alternatives per Slot
+Maximum Number of Bundle Deals,Maximum Number of Bundle Deals
+Maximum Number of Slots,Maximum Number of Slots
+Name,Name
+New Bundle Deal,New Bundle Deal
+Newest first,Newest first
+No,No
+No discount,No discount
+No: this rule gives no discount on items that belong to a complete bundle deal set in the cart.,No: this rule gives no discount on items that belong to a complete bundle deal set in the cart.
+None,None
+Only shown in the admin.,Only shown in the admin.
+Percentage of the item price,Percentage of the item price
+Please enter a name.,Please enter a name.
+Please enter a title.,Please enter a title.
+Position on Product Page,Position on Product Page
+"Price, high to low","Price, high to low"
+"Price, low to high","Price, low to high"
+Priority,Priority
+Products that can fill this slot,Products that can fill this slot
+Regular price,Regular price
+Save,Save
+Save and Continue Edit,Save and Continue Edit
+"Save the bundle deal first, then add its slots.","Save the bundle deal first, then add its slots."
+Shown above the product choice of this slot on the storefront.,Shown above the product choice of this slot on the storefront.
+Slot,Slot
+Slots,Slots
+Something went wrong while deleting the bundle deal.,Something went wrong while deleting the bundle deal.
+Something went wrong while deleting the bundle deals.,Something went wrong while deleting the bundle deals.
+Something went wrong while deleting the slot.,Something went wrong while deleting the slot.
+Something went wrong while saving the bundle deal.,Something went wrong while saving the bundle deal.
+Something went wrong while saving the slot.,Something went wrong while saving the slot.
+Sort Order,Sort Order
+Sort Products By,Sort Products By
+Store View,Store View
+Storefront Title,Storefront Title
+The bundle deal has been added to your shopping cart.,The bundle deal has been added to your shopping cart.
+The bundle deal links of this product could not be saved.,The bundle deal links of this product could not be saved.
+The discount amount cannot be negative.,The discount amount cannot be negative.
+The discount is applied in the shopping cart.,The discount is applied in the shopping cart.
+The end date cannot be before the start date.,The end date cannot be before the start date.
+The first product is the default choice in this slot.,The first product is the default choice in this slot.
+There are no bundle deals with slots yet.,There are no bundle deals with slots yet.
+This bundle deal is no longer available.,This bundle deal is no longer available.
+This bundle deal no longer exists.,This bundle deal no longer exists.
+This product,This product
+This product is no longer available.,This product is no longer available.
+This product is not part of the bundle deal.,This product is not part of the bundle deal.
+This slot no longer exists.,This slot no longer exists.
+Title,Title
+To,To
+Together,Together
+Together from,Together from
+Use as Entry,Use as Entry
+Use as entry (show bundle on this product's page),Use as entry (show bundle on this product's page)
+Used when the rule has no storefront title of its own.,Used when the rule has no storefront title of its own.
+We can't add this bundle deal to your shopping cart right now.,We can't add this bundle deal to your shopping cart right now.
+We can't add this product to your shopping cart right now.,We can't add this product to your shopping cart right now.
+"When the set is complete in the cart, its items get no discount from other cart price rules.","When the set is complete in the cart, its items get no discount from other cart price rules."
+Yes,Yes
+You deleted the bundle deal.,You deleted the bundle deal.
+You deleted the slot.,You deleted the slot.
+You save,You save
+You saved the bundle deal.,You saved the bundle deal.
+You saved the slot.,You saved the slot.
+"Choose %1 at the top of the page","Choose %1 at the top of the page"
+"Everything delivered tomorrow","Everything delivered tomorrow"
+"Complete in %1 working days","Complete in %1 working days"
+"Complete in %1 to %2 working days","Complete in %1 to %2 working days"
+"Delivered in 2 shipments","Delivered in 2 shipments"
+"Show Split Shipment Notice","Show Split Shipment Notice"
+"Shows that the bundle may arrive in two shipments when its products have different delivery times. Display only, it does not change shipping.","Shows that the bundle may arrive in two shipments when its products have different delivery times. Display only, it does not change shipping."
+"Title Heading Level","Title Heading Level"
+"Use H1 when the overview is the main content of the page.","Use H1 when the overview is the main content of the page."
+H1,H1
+H2,H2
+%1 items,%1 items
+-- None --,-- None --
+Biggest saving,Biggest saving
+Brand attribute,Brand attribute
+Bundle deals per page,Bundle deals per page
+Bundle deals with the same code are colour versions of one bundle: the overview page shows them as one card and the product page offers a colour switch.,Bundle deals with the same code are colour versions of one bundle: the overview page shows them as one card and the product page offers a colour switch.
+CMS block,CMS block
+Colour,Colour
+Colour Group,Colour Group
+Colours,Colours
+Customer Groups,Customer Groups
+Default sort order,Default sort order
+Group Code,Group Code
+Heading (H1),Heading (H1)
+Intro text,Intro text
+Label of this bundle deal in the colour switch.,Label of this bundle deal in the colour switch.
+Leave empty to apply the bundle deal to all customer groups.,Leave empty to apply the bundle deal to all customer groups.
+Leave empty to use the page title.,Leave empty to use the page title.
+Lowest active bundle deal of the group represents the group on the overview page.,Lowest active bundle deal of the group represents the group on the overview page.
+Meta description,Meta description
+Meta title,Meta title
+Next,Next
+No bundle deals found.,No bundle deals found.
+Overview page,Overview page
+Page %1 of %2,Page %1 of %2
+Page that lists all active bundle deals. Only shown when bundle deals are enabled.,Page that lists all active bundle deals. Only shown when bundle deals are enabled.
+Page title,Page title
+Pages,Pages
+"Path of the page without slashes, for example ""bundles"".","Path of the page without slashes, for example ""bundles""."
+Popular,Popular
+Previous,Previous
+Shown above the bundle deals. Ignored when a CMS block is selected.,Shown above the bundle deals. Ignored when a CMS block is selected.
+Sort Order in Group,Sort Order in Group
+Sport filter attribute,Sport filter attribute
+The Amasty table(s) %1 do not exist; nothing to import.,The Amasty table(s) %1 do not exist; nothing to import.
+URL key,URL key
+%1 more colours,%1 more colours
+%1 sets,%1 sets
+"%1, temporarily unavailable","%1, temporarily unavailable"
+-%1%,-%1%
+1 set,1 set
+All brands,All brands
+All sports,All sports
+Apply,Apply
+Brand,Brand
+Breadcrumb,Breadcrumb
+Choose the size per item,Choose the size per item
+Clear filters,Clear filters
+Close,Close
+Colour of the set,Colour of the set
+Colour of the set:,Colour of the set:
+Colour: %1,Colour: %1
+Discount applied directly in your cart,Discount applied directly in your cart
+Filter & sort,Filter & sort
+Home,Home
+Go to the next page,Go to the next page
+No sets for this combination,No sets for this combination
+Page,Page
+Pagination,Pagination
+Go to the previous page,Go to the previous page
+Separately,Separately
+Set of %1,Set of %1
+Sort by,Sort by
+Sport,Sport
+Try another sport or brand.,Try another sport or brand.
+Up to %1% off the set,Up to %1% off the set
+View set,View set
+You save %1,You save %1
+"The URL key ""%1"" is already used by another bundle deal.","The URL key ""%1"" is already used by another bundle deal."
+Reviews of the set items,Reviews of the set items
+No reviews,No reviews
+Variable: the shopper picks a product,Variable: the shopper picks a product
+Fixed: always the first product,Fixed: always the first product
+Optional: the shopper may leave it out,Optional: the shopper may leave it out
+%1: a set of %2 items for %3 instead of %4.,%1: a set of %2 items for %3 instead of %4.
+Choose your size for %1 items,Choose your size for %1 items
+Choose your size for 1 item,Choose your size for 1 item
+Add set - %1,Add set - %1
+Everything in house tomorrow,Everything in house tomorrow
+Delivered complete in %1 to %2 business days,Delivered complete in %1 to %2 business days
+Delivered complete in %1 business days,Delivered complete in %1 business days
+Delivered complete once every item is in stock,Delivered complete once every item is in stock
+Choose your sizes first,Choose your sizes first
+-%1% on the set,-%1% on the set
+Colour %1,Colour %1
+Not available,Not available
+Optional,Optional
+Include in the set,Include in the set
+The set has been added to your shopping cart.,The set has been added to your shopping cart.
+Size,Size
+Set photos,Set photos
+%1 reviews,%1 reviews
+Items in this set,Items in this set
+Quantity,Quantity
+Decrease quantity,Decrease quantity
+Increase quantity,Increase quantity
+"Every item comes as its own line in your cart, so you can still change or return items one by one. The set discount applies while the set is complete.","Every item comes as its own line in your cart, so you can still change or return items one by one. The set discount applies while the set is complete."
+Free shipping from the configured amount,Free shipping from the configured amount
+"Secure payment","Secure payment"
+Questions? Our team in the shop helps you,Questions? Our team in the shop helps you
+What is in the set,What is in the set
+Item,Item
+Separate price,Separate price
+Price in the set,Price in the set
+More information,More information
+Description,Description
+Specifications,Specifications
+Size advice,Size advice
+Delivery,Delivery
+Returns,Returns
+Reviews of the items,Reviews of the items
+More sets for you,More sets for you
+Set Page,Set Page
+"One page per bundle deal, reached through its URL key.","One page per bundle deal, reached through its URL key."
+Set pages answer with a 404 while this is off.,Set pages answer with a 404 while this is off.
+Allow Indexing,Allow Indexing
+Off sends noindex and keeps the pages out of the sitemap-ready state until the shop is ready.,Off sends noindex and keeps the pages out of the sitemap-ready state until the shop is ready.
+URL Prefix,URL Prefix
+Set pages live at /{prefix}/{url key}.,Set pages live at /{prefix}/{url key}.
+"Number of ""More Sets"" Cards","Number of ""More Sets"" Cards"
+Cards below the fold; 0 hides the section.,Cards below the fold; 0 hides the section.
+Sticky Buy Bar,Sticky Buy Bar
+Fixed bar with price and button while scrolling.,Fixed bar with price and button while scrolling.
+Review Source,Review Source
+Reviews shown on the set page are those of the set items.,Reviews shown on the set page are those of the set items.
+Delivery Text,Delivery Text
+Content of the delivery accordion. A CMS block below wins over this text.,Content of the delivery accordion. A CMS block below wins over this text.
+Delivery CMS Block,Delivery CMS Block
+Return Text,Return Text
+Content of the returns accordion. A CMS block below wins over this text.,Content of the returns accordion. A CMS block below wins over this text.
+Return CMS Block,Return CMS Block
+Size Advice CMS Block,Size Advice CMS Block
+"Identifier of the size chart block, for example sizechart.","Identifier of the size chart block, for example sizechart."
+URL Key,URL Key
+Address of the set page below the configured set URL prefix. Leave empty to generate it from the title.,Address of the set page below the configured set URL prefix. Leave empty to generate it from the title.
+Shown in the description accordion on the set page.,Shown in the description accordion on the set page.
+Slot Type,Slot Type
+"Fixed slots always hold the first product, variable slots let the shopper pick a product on the set page, optional slots can be unchecked: a set is still complete and discounted without them.","Fixed slots always hold the first product, variable slots let the shopper pick a product on the set page, optional slots can be unchecked: a set is still complete and discounted without them."
+"Previous sizes","Previous sizes"
+"Next sizes","Next sizes"
+"Bought separately","Bought separately"
+"Bundle discount","Bundle discount"
+"Set of %1 items","Set of %1 items"
+"Swap","Swap"
+"Buy the complete set","Buy the complete set"
+"Save %1","Save %1"
+"Bundle save","Save"
+"Choose your size and swap an item if you want another colour.","Choose your size and swap an item if you want another colour."
+"Add set to cart","Add set to cart"
+"Added","Added"
+"Add to cart","Add to cart"
+"Choose size","Choose size"
+"Still to choose:","Still to choose:"
+"choose your %1","choose your %1"
+"choose your %1 first","choose your %1 first"
+"Delivery time after choosing a size","Delivery time after choosing a size"
+"Choose %1","Choose %1"
+"%1 options, all with %2 set discount","%1 options, all with %2 set discount"
+"Swap %1, %2 options","Swap %1, %2 options"
+"Free shipping","Free shipping"
+"Free shipping from %1","Free shipping from %1"
+"%1 separate items in your cart","%1 separate items in your cart"
+"%1 items added, you save %2","%1 items added, you save %2"
+"Shopping cart","Shopping cart"
+"save","save"
+"%1, sold out","%1, sold out"
+"Set price","Set price"
+Product attribute (dropdown or multiple select) of the sport filter.,Product attribute (dropdown or multiple select) of the sport filter.
+Product attribute (dropdown) of the brand filter.,Product attribute (dropdown) of the brand filter.
+Anchor ID,Anchor ID
+"Id of the bundle deal section on the product page, used for the link ""#anchor"" of the teaser. Lowercase letters, digits, dash and underscore.","Id of the bundle deal section on the product page, used for the link ""#anchor"" of the teaser. Lowercase letters, digits, dash and underscore."
+Brand filter URL parameter,Brand filter URL parameter
+"Name of the URL parameter of the brand filter, for example ""brand"" in /bundles?brand=venum.","Name of the URL parameter of the brand filter, for example ""brand"" in /bundles?brand=venum."
+-- Default --,-- Default --

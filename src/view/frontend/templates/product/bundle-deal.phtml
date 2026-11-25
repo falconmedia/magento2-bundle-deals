@@ -1,0 +1,916 @@
+<?php
+
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+
+/**
+ * Bundle deal on the product page: a full width band with one tile per slot (size chips, swap panel), a summary
+ * with the set price and one add to cart button for the whole set, plus a sticky bar on small screens.
+ */
+declare(strict_types=1);
+
+use FalconMedia\BundleDeals\Block\Product\BundleDeal;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Magento\Framework\Escaper;
+
+/**
+ * @var BundleDeal $block
+ */
+/**
+ * @var Escaper $escaper
+ */
+/**
+ * @var HyvaCsp $hyvaCsp
+ */
+
+$texts = $block->getData('texts');
+
+$bundle = $block->getBundle();
+if (!$bundle) {
+    return;
+}
+
+$uid = 'fmBundleDeal_' . substr(hash('sha256', (string) $block->getNameInLayout()), 0, 12);
+$titleId = $uid . '_title';
+$config = [
+    'ruleId' => (int) $bundle['ruleId'],
+    'slots' => $bundle['slots'],
+    'extraDiscounts' => $bundle['extraDiscounts'],
+    'addUrl' => $block->getAddUrl(),
+    'cartUrl' => $block->getUrl('checkout/cart'),
+    'delivery' => $bundle['delivery'],
+    'showSplitShipment' => (bool) $bundle['showSplitShipment'],
+    'freeShippingThreshold' => $block->getFreeShippingThreshold(),
+    'i18n' => [
+        'chooseAbove' => (string) __('Choose %1 at the top of the page'),
+        'choose' => (string) __('Choose %1 for %2'),
+        'chooseTitle' => (string) __('Choose %1'),
+        'chooseYour' => (string) __('choose your %1'),
+        'chooseYourFirst' => (string) __('choose your %1 first'),
+        'stillToChoose' => (string) __('Still to choose:'),
+        'optionsAllWith' => (string) __('%1 options, all with %2 set discount'),
+        'swapLabel' => (string) __('Swap %1, %2 options'),
+        'noTimeYet' => (string) __('Delivery time after choosing a size'),
+        'allDirect' => (string) $texts->get('product_all_direct'),
+        'completeIn' => (string) $texts->get('product_complete_in'),
+        'completeInRange' => (string) $texts->get('product_complete_in_range'),
+        'error' => (string) __('We can\'t add this bundle deal to your shopping cart right now.'),
+        'setOf' => (string) __('Set of %1 items'),
+        'freeShipping' => (string) __('Free shipping'),
+        'freeShippingFrom' => (string) __('Free shipping from %1'),
+        'separateItems' => (string) __('%1 separate items in your cart'),
+        'added' => (string) __('%1 items added, you save %2'),
+        'unavailable' => (string) __('%1, sold out'),
+        'from' => (string) __('From %1'),
+    ],
+];
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE;
+
+$colorVariants = $block->getColorGroupVariants((int) $bundle['ruleId']);
+$currentColor = '';
+foreach ($colorVariants as $colorVariant) {
+    if ((int) $colorVariant['ruleId'] === (int) $bundle['ruleId']) {
+        $currentColor = (string) $colorVariant['label'];
+    }
+}
+
+$icons = [
+    'swap' => '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"'
+        . ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        . '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>',
+    'cart' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
+        . ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        . '<path d="M3 4h2l2.4 11h10.2L20 7H6.3"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>'
+        . '</svg>',
+    'check' => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"'
+        . ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    'truck' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+        . ' aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.6"/>'
+        . '<circle cx="17" cy="18" r="1.6"/></svg>',
+    'close' => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"'
+        . ' stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+];
+?>
+<script>
+    function <?= /* @noEscape */ $uid ?>() {
+        const config = <?= /* @noEscape */ json_encode($config, $jsonFlags) ?>;
+        const selections = {};
+        config.slots.forEach((slot) => {
+            slot.candidates.forEach((product) => {
+                const choice = {};
+                (product.options ? product.options.attributes : []).forEach((attribute) => {
+                    choice[attribute.id] = attribute.options.length === 1 ? attribute.options[0].id : '';
+                });
+                selections[slot.slotId + '_' + product.productId] = choice;
+            });
+        });
+
+        return {
+            i18n: config.i18n,
+            slots: config.slots.map((slot) => Object.assign({}, slot, {selected: 0})),
+            selections: selections,
+            errors: {},
+            generalError: '',
+            loading: false,
+            done: false,
+            missingShown: false,
+            attempted: false,
+            panelSlot: null,
+            barOn: false,
+            toast: '',
+            lastFocus: null,
+
+            init() {
+                const form = document.getElementById('product_addtocart_form');
+                if (form) {
+                    const values = {};
+                    new FormData(form).forEach((value, name) => {
+                        const match = /^super_attribute\[(\d+)\]$/.exec(name);
+                        if (match && value) {
+                            values[match[1]] = String(value);
+                        }
+                    });
+                    this.applyTopSelection(values);
+                }
+                this.observeBar();
+            },
+
+            observeBar() {
+                if (!('IntersectionObserver' in window)) {
+                    return;
+                }
+                const small = window.matchMedia('(max-width: 1023.98px)');
+                let blockIn = false;
+                let ctaIn = false;
+                const update = () => {
+                    this.barOn = small.matches && blockIn && !ctaIn;
+                    document.documentElement.classList.toggle('fm-bd-bar-on', this.barOn);
+                };
+                new IntersectionObserver(([entry]) => {
+                    blockIn = entry.isIntersecting;
+                    update();
+                }, {rootMargin: '-20% 0px -50% 0px'}).observe(this.$root);
+                new IntersectionObserver(([entry]) => {
+                    ctaIn = entry.isIntersecting;
+                    update();
+                }, {rootMargin: '0px 0px -60px 0px'}).observe(this.$refs.summary);
+                small.addEventListener('change', update);
+            },
+
+            announce() {
+                const totals = this.totals;
+                window.dispatchEvent(new CustomEvent('fm-bundle-changed', {detail: {
+                    total: this.format(totals.total),
+                    saving: totals.saving > 0 ? this.format(totals.saving) : '',
+                    images: this.slots.map((slot) => this.product(slot).image)
+                }}));
+            },
+
+            currentSlot() {
+                return this.slots.find((slot) => slot.isCurrent) || null;
+            },
+
+            applyTopSelection(values) {
+                const slot = this.currentSlot();
+                const product = slot ? this.product(slot) : null;
+                if (!product || !product.options) {
+                    return;
+                }
+                const choice = this.selections[this.key(slot, product)];
+                product.options.attributes.forEach((attribute) => {
+                    if (values[attribute.id]) {
+                        choice[attribute.id] = String(values[attribute.id]);
+                    } else if (attribute.options.length > 1) {
+                        choice[attribute.id] = '';
+                    }
+                });
+                delete this.errors[slot.slotId];
+            },
+
+            onTopSelection(event) {
+                const detail = event.detail || {};
+                const slot = this.currentSlot();
+                if (!slot || String(detail.productId) !== String(this.product(slot).productId)) {
+                    return;
+                }
+                this.applyTopSelection(detail.selectedValues || {});
+            },
+
+            syncTop(attributeId, optionId) {
+                const radio = document.querySelector(
+                    'input[name="super_attribute[' + attributeId + ']"][value="' + optionId + '"]'
+                );
+                if (radio && !radio.checked && !radio.disabled) {
+                    radio.click();
+                }
+            },
+
+            deliveryFor(slot, product) {
+                const childId = this.childId(slot, product);
+                if (childId) {
+                    return config.delivery[childId] || null;
+                }
+                return product.options ? null : (config.delivery[product.productId] || null);
+            },
+
+            candidateDelivery(candidate) {
+                const delivery = candidate.options ? null : (config.delivery[candidate.productId] || null);
+                return delivery || {direct: false, label: candidate.options ? config.i18n.noTimeYet : ''};
+            },
+
+            deliveryLabel(slot, product) {
+                const delivery = this.deliveryFor(slot, product);
+                return delivery ? delivery.label : (product.options ? config.i18n.noTimeYet : '');
+            },
+
+            get deliverySummary() {
+                const times = this.slots.map((slot) => this.deliveryFor(slot, this.product(slot)));
+                if (!times.length || times.some((time) => !time)) {
+                    return {text: '', direct: false, splitShipment: false};
+                }
+                const splitShipment = config.showSplitShipment
+                    && times.some((time) => time.direct) && times.some((time) => !time.direct);
+                if (times.every((time) => time.direct)) {
+                    return {text: config.i18n.allDirect, direct: true, splitShipment: false};
+                }
+                if (times.some((time) => !time.direct && time.minDays == null && time.maxDays == null)) {
+                    return {text: '', direct: false, splitShipment: splitShipment};
+                }
+                const min = Math.max(...times.map((time) => time.minDays ?? time.maxDays ?? 0));
+                const max = Math.max(...times.map((time) => time.maxDays ?? time.minDays ?? 0));
+                if (!max) {
+                    return {text: '', direct: false, splitShipment: splitShipment};
+                }
+                const text = min === max
+                    ? config.i18n.completeIn.replace('%1', max)
+                    : config.i18n.completeInRange.replace('%1', min).replace('%2', max);
+                return {text: text, direct: false, splitShipment: splitShipment};
+            },
+
+            key(slot, product) {
+                return slot.slotId + '_' + product.productId;
+            },
+
+            product(slot) {
+                return slot.candidates[slot.selected];
+            },
+
+            slotWord(slot) {
+                return String(slot.title || '').toLowerCase();
+            },
+
+            openPanel(slot, event) {
+                this.lastFocus = event.currentTarget;
+                this.panelSlot = slot;
+                this.$nextTick(() => {
+                    const selected = this.$refs.panel.querySelector('[aria-pressed="true"]');
+                    (selected || this.$refs.sheet).focus();
+                });
+            },
+
+            closePanel() {
+                const slot = this.panelSlot;
+                this.panelSlot = null;
+                this.$nextTick(() => {
+                    const target = this.lastFocus && document.body.contains(this.lastFocus)
+                        ? this.lastFocus
+                        : document.getElementById('<?= /* @noEscape */ $uid ?>_swap_' + (slot ? slot.slotId : ''));
+                    if (target) {
+                        target.focus({preventScroll: true});
+                    }
+                });
+            },
+
+            trapPanel(event) {
+                if (event.key === 'Escape') {
+                    this.closePanel();
+                    return;
+                }
+                if (event.key !== 'Tab') {
+                    return;
+                }
+                const items = Array.from(this.$refs.sheet.querySelectorAll('button'));
+                const first = items[0];
+                const last = items[items.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            },
+
+            pick(slot, index) {
+                slot.selected = index;
+                delete this.errors[slot.slotId];
+                this.closePanel();
+            },
+
+            isSelected(slot, product, attributeId, optionId) {
+                return this.selections[this.key(slot, product)][attributeId] === optionId;
+            },
+
+            choose(slot, product, attributeId, optionId) {
+                const choice = this.selections[this.key(slot, product)];
+                const attribute = product.options.attributes.find((item) => item.id === attributeId);
+                if (slot.isCurrent) {
+                    if (choice[attributeId] !== optionId) {
+                        choice[attributeId] = optionId;
+                        this.syncTop(attributeId, optionId);
+                    }
+                } else {
+                    choice[attributeId] = attribute.options.length > 1 && choice[attributeId] === optionId
+                        ? ''
+                        : optionId;
+                }
+                delete this.errors[slot.slotId];
+                if (!this.missing.length) {
+                    this.missingShown = false;
+                    this.attempted = false;
+                }
+            },
+
+            isAvailable(slot, product, attributeId, option) {
+                const choice = this.selections[this.key(slot, product)];
+                return option.products.some((childId) => {
+                    const values = product.options.index[childId] || {};
+                    return Object.keys(choice).every(
+                        (id) => id === attributeId || !choice[id] || values[id] === choice[id]
+                    );
+                });
+            },
+
+            selectedLabel(slot, product, attribute) {
+                const optionId = this.selections[this.key(slot, product)][attribute.id];
+                const option = attribute.options.find((item) => item.id === optionId);
+                return option ? option.label : '';
+            },
+
+            childId(slot, product) {
+                if (!product.options) {
+                    return null;
+                }
+                const choice = this.selections[this.key(slot, product)];
+                if (Object.values(choice).some((value) => !value)) {
+                    return null;
+                }
+                return Object.keys(product.options.index).find((childId) => {
+                    const values = product.options.index[childId];
+                    return Object.keys(choice).every((id) => values[id] === choice[id]);
+                }) || null;
+            },
+
+            isMissing(slot) {
+                const product = this.product(slot);
+                if (!product.options) {
+                    return false;
+                }
+                const choice = this.selections[this.key(slot, product)];
+                return Object.values(choice).some((value) => !value);
+            },
+
+            prices(slot, product) {
+                const childId = this.childId(slot, product);
+                const price = childId && product.options.prices[childId]
+                    ? product.options.prices[childId]
+                    : {finalPrice: product.finalPrice, regularPrice: product.regularPrice};
+                return {
+                    finalPrice: price.finalPrice,
+                    regularPrice: Math.max(price.regularPrice || 0, price.finalPrice)
+                };
+            },
+
+            isPriceRange(slot, product) {
+                if (!product.options || this.childId(slot, product)) {
+                    return false;
+                }
+                const values = Object.values(product.options.prices).map((price) => price.finalPrice);
+                return values.length > 1 && Math.min(...values) !== Math.max(...values);
+            },
+
+            discounted(slot, finalPrice, regularPrice) {
+                if (slot.discount.excludeSpecialPrice && finalPrice < regularPrice) {
+                    return finalPrice;
+                }
+                const amount = Number(slot.discount.amount) || 0;
+                if (slot.discount.type === 'percent') {
+                    return Math.max(0, finalPrice - finalPrice * amount / 100);
+                }
+                if (slot.discount.type === 'fixed') {
+                    return Math.max(0, finalPrice - amount);
+                }
+                return finalPrice;
+            },
+
+            bundlePrice(slot, product) {
+                const prices = this.prices(slot, product);
+                return this.discounted(slot, prices.finalPrice, prices.regularPrice);
+            },
+
+            isDeal(slot, product) {
+                return this.bundlePrice(slot, product) < this.prices(slot, product).regularPrice;
+            },
+
+            hasDiscount(slot) {
+                return slot.discount.type !== 'none' && Number(slot.discount.amount) > 0;
+            },
+
+            isBadgeVisible(slot, product) {
+                return this.hasDiscount(slot) && this.isDeal(slot, product) && this.discountBadge(slot, product) !== '-0%';
+            },
+
+            discountBadge(slot, product) {
+                const prices = this.prices(slot, product);
+                const discounted = this.discounted(slot, prices.finalPrice, prices.regularPrice);
+                if (discounted >= prices.finalPrice && prices.finalPrice < prices.regularPrice) {
+                    return '-' + Math.round((1 - prices.finalPrice / prices.regularPrice) * 100) + '%';
+                }
+                if (slot.discount.type === 'percent') {
+                    return '-' + Number(slot.discount.amount).toLocaleString() + '%';
+                }
+                return '-' + hyva.formatPrice(Number(slot.discount.amount));
+            },
+
+            discountText(slot) {
+                if (slot.discount.type === 'percent') {
+                    return Number(slot.discount.amount).toLocaleString() + '%';
+                }
+                return hyva.formatPrice(Number(slot.discount.amount));
+            },
+
+            format(value) {
+                return hyva.formatPrice(value);
+            },
+
+            formatFrom(slot, product) {
+                const price = this.format(this.bundlePrice(slot, product));
+                return this.isPriceRange(slot, product) ? config.i18n.from.replace('%1', price) : price;
+            },
+
+            get totals() {
+                let regular = 0;
+                let total = 0;
+                this.slots.forEach((slot) => {
+                    const product = this.product(slot);
+                    const prices = this.prices(slot, product);
+                    regular += prices.finalPrice;
+                    total += this.discounted(slot, prices.finalPrice, prices.regularPrice);
+                });
+                const itemCount = this.slots.length;
+                for (const discount of config.extraDiscounts) {
+                    const amount = Number(discount.amount) || 0;
+                    if (discount.type === 'by_percent') {
+                        total -= total * amount / 100;
+                    } else if (discount.type === 'by_fixed') {
+                        total -= amount * itemCount;
+                    } else if (discount.type === 'cart_fixed') {
+                        total -= amount;
+                    }
+                    total = Math.max(0, total);
+                    if (discount.stop) {
+                        break;
+                    }
+                }
+                total = Math.round(total * 100) / 100;
+                regular = Math.round(regular * 100) / 100;
+                return {total: total, regular: regular, saving: Math.max(0, Math.round((regular - total) * 100) / 100)};
+            },
+
+            get missing() {
+                return this.slots.filter((slot) => this.isMissing(slot));
+            },
+
+            missingAttribute(slot) {
+                const product = this.product(slot);
+                const choice = this.selections[this.key(slot, product)];
+                const attribute = product.options.attributes.find((item) => !choice[item.id]);
+                return attribute ? attribute.label.toLowerCase() : '';
+            },
+
+            missingLabel(slot) {
+                const product = this.product(slot);
+                const choice = this.selections[this.key(slot, product)];
+                const attribute = product.options.attributes.find((item) => !choice[item.id]);
+                const label = attribute ? attribute.label.toLowerCase() : '';
+                const shared = this.missing.filter((other) => other !== slot && this.missingAttribute(other) === label);
+                return shared.length ? label + ' ' + this.slotWord(slot) : label;
+            },
+
+            get setCount() {
+                return config.i18n.setOf.replace('%1', this.slots.length);
+            },
+
+            get freeShippingText() {
+                const threshold = config.freeShippingThreshold;
+                if (!threshold) {
+                    return '';
+                }
+                return this.totals.total >= threshold
+                    ? config.i18n.freeShipping
+                    : config.i18n.freeShippingFrom.replace('%1', this.format(threshold));
+            },
+
+            get separateItemsText() {
+                return config.i18n.separateItems.replace('%1', this.slots.length);
+            },
+
+            goToMissing(slot) {
+                this.missingShown = true;
+                this.$nextTick(() => {
+                    const tile = document.getElementById('<?= /* @noEscape */ $uid ?>_slot_' + slot.slotId);
+                    if (!tile) {
+                        return;
+                    }
+                    tile.scrollIntoView({block: 'center', behavior: 'smooth'});
+                    const chip = tile.querySelector('button.fm-bd__chip:not(:disabled)');
+                    if (chip) {
+                        chip.focus({preventScroll: true});
+                    }
+                });
+            },
+
+            add() {
+                if (this.done || this.loading) {
+                    return;
+                }
+                const missing = this.missing;
+                if (missing.length) {
+                    this.attempted = true;
+                    this.goToMissing(missing[0]);
+                    return;
+                }
+                this.submit();
+            },
+
+            async submit() {
+                this.loading = true;
+                this.errors = {};
+                this.generalError = '';
+
+                const body = new FormData();
+                body.append('form_key', hyva.getFormKey());
+                body.append('rule_id', config.ruleId);
+                body.append('complete', '1');
+                this.slots.forEach((slot, index) => {
+                    const product = this.product(slot);
+                    body.append('items[' + index + '][slot_id]', slot.slotId);
+                    body.append('items[' + index + '][product_id]', product.productId);
+                    const choice = this.selections[this.key(slot, product)];
+                    Object.keys(choice).forEach((attributeId) => {
+                        body.append('items[' + index + '][super_attribute][' + attributeId + ']', choice[attributeId]);
+                    });
+                });
+
+                try {
+                    const response = await fetch(config.addUrl, {
+                        method: 'POST',
+                        body: body,
+                        headers: {'X-Requested-With': 'XMLHttpRequest'}
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        window.dispatchEvent(new CustomEvent('reload-customer-section-data'));
+                        this.showDone();
+                        return;
+                    }
+                    (result.errors || []).forEach((error) => {
+                        if (error.slotId) {
+                            this.errors[error.slotId] = error.message;
+                        }
+                    });
+                    if (!Object.keys(this.errors).length) {
+                        this.generalError = result.message || config.i18n.error;
+                    }
+                    this.notify('error', result.message || config.i18n.error);
+                } catch (e) {
+                    this.generalError = config.i18n.error;
+                    this.notify('error', config.i18n.error);
+                } finally {
+                    this.loading = false;
+                }
+            },
+
+            showDone() {
+                this.done = true;
+                this.toast = config.i18n.added
+                    .replace('%1', this.slots.length)
+                    .replace('%2', this.format(this.totals.saving));
+                clearTimeout(this.doneTimer);
+                this.doneTimer = setTimeout(() => {
+                    this.done = false;
+                    this.toast = '';
+                }, 3200);
+            },
+
+            notify(type, text) {
+                if (typeof window.dispatchMessages !== 'undefined' && text) {
+                    window.dispatchMessages([{type: type, text: text}], 5000);
+                }
+            }
+        };
+    }
+</script>
+<?php $hyvaCsp->registerInlineScript() ?>
+
+<section class="fm-bd" id="<?= $escaper->escapeHtmlAttr($block->getAnchorId()) ?>"
+         aria-labelledby="<?= $escaper->escapeHtmlAttr($titleId) ?>"
+         x-data="<?= /* @noEscape */ $uid ?>()"
+         x-effect="announce()"
+         @configurable-selection-changed.window="onTopSelection($event)"
+>
+    <div class="fm-bd__wrap">
+        <div class="fm-bd__head">
+            <h2 id="<?= $escaper->escapeHtmlAttr($titleId) ?>" class="fm-bd__title">
+                <?= $escaper->escapeHtml($bundle['title']) ?>
+            </h2>
+            <span class="fm-bd__pill fmbd-num" x-show="totals.saving > 0" x-cloak>
+                <?= $escaper->escapeHtml(__('Bundle save')) ?> <span x-text="format(totals.saving)"></span>
+            </span>
+            <p class="fm-bd__sub">
+                <?= $escaper->escapeHtml(__('Choose your size and swap an item if you want another colour.')) ?>
+            </p>
+
+            <?php if (count($colorVariants) > 1): ?>
+                <div class="fm-bd__setcol">
+                    <b id="<?= $escaper->escapeHtmlAttr($uid) ?>_colour">
+                        <?= $escaper->escapeHtml(__('Colour of the set:')) ?>
+                        <span class="font-normal"><?= $escaper->escapeHtml($currentColor) ?></span>
+                    </b>
+                    <ul class="m-0 p-0 list-none flex items-center"
+                        aria-labelledby="<?= $escaper->escapeHtmlAttr($uid) ?>_colour">
+                        <?php foreach ($colorVariants as $colorVariant): ?>
+                            <?php
+                            $isCurrent = (int) $colorVariant['ruleId'] === (int) $bundle['ruleId'];
+                            $isAvailable = !empty($colorVariant['deliverable']) && !empty($colorVariant['url']);
+                            $swatchHex = (string) ($colorVariant['swatchHex'] ?? '');
+                            $unavailableLabel = __('%1, temporarily unavailable', $colorVariant['label']);
+                            ?>
+                            <li>
+                                <?php if ($isAvailable): ?>
+                                <a href="<?= $escaper->escapeUrl($colorVariant['url']) ?>" class="fm-bd__dot"
+                                   aria-label="<?= $escaper->escapeHtmlAttr($colorVariant['label']) ?>"
+                                    <?= $isCurrent ? 'aria-current="true"' : '' ?>>
+                                <?php else: ?>
+                                <span role="img" class="fm-bd__dot" aria-disabled="true"
+                                      aria-label="<?= $escaper->escapeHtmlAttr($unavailableLabel) ?>">
+                                <?php endif; ?>
+                                    <i <?php if ($swatchHex !== ''): ?>
+                                        style="background-color: <?= $escaper->escapeHtmlAttr($swatchHex) ?>"
+                                    <?php endif; ?>>
+                                        <?php if ($swatchHex === '' && !empty($colorVariant['imageUrl'])): ?>
+                                            <img src="<?= $escaper->escapeUrl($colorVariant['imageUrl']) ?>" alt=""
+                                                 width="24" height="24" loading="lazy" class="w-full h-full object-cover">
+                                        <?php endif; ?>
+                                    </i>
+                                <?php if ($isAvailable): ?>
+                                </a>
+                                <?php else: ?>
+                                </span>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="fm-bd__grid" :data-n="slots.length">
+            <ol class="fm-bd__tiles">
+                <template x-for="(slot, slotIndex) in slots" :key="slot.slotId">
+                    <li class="fm-bd__item">
+                        <span class="fm-bd__plus" aria-hidden="true" x-show="slotIndex > 0"><span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 1.5v9M1.5 6h9"/></svg></span></span>
+
+                        <div class="fm-bd__tile"
+                             :class="attempted && isMissing(slot) ? 'is-missing' : ''"
+                             :id="'<?= /* @noEscape */ $uid ?>_slot_' + slot.slotId"
+                             tabindex="-1"
+                             :aria-invalid="errors[slot.slotId] ? 'true' : null"
+                        >
+                            <div class="fm-bd__img">
+                                <img :src="product(slot).imageLarge || product(slot).image" :alt="product(slot).name" width="200" height="200"
+                                     loading="lazy">
+                                <span class="fm-bd__badge fmbd-num" x-show="isBadgeVisible(slot, product(slot))"
+                                      x-text="discountBadge(slot, product(slot))"></span>
+                            </div>
+
+                            <div class="fm-bd__tilehead">
+                                <span class="fm-bd__slot" x-text="slot.title"></span>
+                                <span class="fm-bd__this" x-show="slot.isCurrent">
+                                    <?= $escaper->escapeHtml(__('This product')) ?>
+                                </span>
+                            </div>
+
+                            <template x-if="slot.isCurrent">
+                                <span class="fm-bd__name" x-text="product(slot).name"></span>
+                            </template>
+                            <template x-if="!slot.isCurrent">
+                                <a class="fm-bd__name" :href="product(slot).url" x-text="product(slot).name"></a>
+                            </template>
+
+                            <p class="fm-bd__price fmbd-num">
+                                <strong :class="isDeal(slot, product(slot)) ? 'is-deal' : ''"
+                                        x-text="formatFrom(slot, product(slot))"></strong>
+                                <template x-if="isDeal(slot, product(slot))">
+                                    <s>
+                                        <span class="sr-only"><?= $escaper->escapeHtml(__('Regular price')) ?></span>
+                                        <span x-text="format(prices(slot, product(slot)).regularPrice)"></span>
+                                    </s>
+                                </template>
+                            </p>
+
+                            <template x-if="product(slot).options">
+                                <div class="contents">
+                                    <template x-for="attribute in product(slot).options.attributes"
+                                              :key="attribute.id">
+                                        <fieldset class="fm-bd__sizes">
+                                            <legend>
+                                                <span x-text="attribute.label"></span>:
+                                                <template x-if="selectedLabel(slot, product(slot), attribute)">
+                                                    <b x-text="selectedLabel(slot, product(slot), attribute)"></b>
+                                                </template>
+                                                <template x-if="!selectedLabel(slot, product(slot), attribute)">
+                                                    <em x-text="(missingShown ? i18n.chooseYourFirst
+                                                        : i18n.chooseYour).replace('%1',
+                                                        attribute.label.toLowerCase())"></em>
+                                                </template>
+                                            </legend>
+                                            <div class="fm-bd__sizesrow">
+                                                <template x-for="option in attribute.options" :key="option.id">
+                                                    <button type="button" class="fm-bd__chip"
+                                                            :aria-pressed="isSelected(slot, product(slot),
+                                                                attribute.id, option.id) ? 'true' : 'false'"
+                                                            :disabled="!isAvailable(slot, product(slot),
+                                                                attribute.id, option)"
+                                                            @click="choose(slot, product(slot), attribute.id,
+                                                                option.id)"
+                                                            x-text="option.label"></button>
+                                                </template>
+                                            </div>
+                                        </fieldset>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <p x-show="errors[slot.slotId]" x-cloak role="alert" class="fm-bd__error"
+                               x-text="errors[slot.slotId]"></p>
+
+                            <div class="fm-bd__foot">
+                                <p class="fm-bd__del"
+                                   :class="deliveryFor(slot, product(slot)) && deliveryFor(slot,
+                                       product(slot)).direct ? 'is-direct' : ''">
+                                    <i x-show="deliveryFor(slot, product(slot))"></i>
+                                    <span x-text="deliveryLabel(slot, product(slot))"></span>
+                                </p>
+                                <template x-if="!slot.isCurrent && slot.candidates.length > 1">
+                                    <button type="button" class="fm-bd__swap" aria-haspopup="dialog"
+                                            :id="'<?= /* @noEscape */ $uid ?>_swap_' + slot.slotId"
+                                            @click="openPanel(slot, $event)">
+                                        <?= /* @noEscape */ $icons['swap'] ?>
+                                        <?= $escaper->escapeHtml(__('Swap')) ?>
+                                        <span class="sr-only"
+                                              x-text="' ' + i18n.swapLabel.replace('%1',
+                                                  slot.title).replace('%2', slot.candidates.length)"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </li>
+                </template>
+            </ol>
+
+            <aside class="fm-bd__sum" x-ref="summary" aria-live="polite">
+                <h3 x-text="setCount"></h3>
+                <dl class="fmbd-num">
+                    <div x-show="totals.saving > 0">
+                        <dt><?= $escaper->escapeHtml(__('Bought separately')) ?></dt>
+                        <dd><s x-text="format(totals.regular)"></s></dd>
+                    </div>
+                    <div class="is-disc" x-show="totals.saving > 0">
+                        <dt><?= $escaper->escapeHtml(__('Bundle discount')) ?></dt>
+                        <dd>- <span x-text="format(totals.saving)"></span></dd>
+                    </div>
+                    <div class="is-total">
+                        <dt><?= $escaper->escapeHtml(__('Together')) ?></dt>
+                        <dd x-text="format(totals.total)"></dd>
+                    </div>
+                </dl>
+
+                <p class="fm-bd__setdel" :class="deliverySummary.direct ? 'is-direct' : ''"
+                   x-show="deliverySummary.text" x-cloak>
+                    <?= /* @noEscape */ $icons['truck'] ?>
+                    <span x-text="deliverySummary.text"></span>
+                </p>
+                <p class="fm-bd__split" x-show="deliverySummary.splitShipment" x-cloak>
+                    <?= $escaper->escapeHtml($texts->get('product_split_shipment')) ?>
+                </p>
+
+                <p x-show="generalError" x-cloak role="alert" class="fm-bd__error" x-text="generalError"></p>
+
+                <button type="button" class="fm-bd__cta" :class="done ? 'is-done' : ''" @click="add()"
+                        :aria-busy="loading ? 'true' : 'false'"
+                        :aria-describedby="missing.length ? '<?= /* @noEscape */ $uid ?>_hint' : null">
+                    <template x-if="done">
+                        <span class="inline-flex items-center gap-2">
+                            <?= /* @noEscape */ $icons['check'] ?>
+                            <?= $escaper->escapeHtml(__('Added')) ?>
+                        </span>
+                    </template>
+                    <template x-if="!done">
+                        <span class="inline-flex items-center gap-2">
+                            <?= /* @noEscape */ $icons['cart'] ?>
+                            <?= $escaper->escapeHtml(__('Add set to cart')) ?>
+                        </span>
+                    </template>
+                </button>
+
+                <p class="fm-bd__hint" id="<?= $escaper->escapeHtmlAttr($uid) ?>_hint" x-show="missing.length" x-cloak>
+                    <?= $escaper->escapeHtml(__('Still to choose:')) ?>
+                    <template x-for="(slot, index) in missing" :key="slot.slotId">
+                        <span>
+                            <a href="#" @click.prevent="goToMissing(slot)" x-text="missingLabel(slot)"></a><span
+                                x-show="index < missing.length - 1">,</span>
+                        </span>
+                    </template>
+                </p>
+
+                <ul class="fm-bd__usp">
+                    <li x-show="freeShippingText" x-cloak>
+                        <?= /* @noEscape */ $icons['check'] ?><span x-text="freeShippingText"></span>
+                    </li>
+                    <li><?= /* @noEscape */ $icons['check'] ?><span x-text="separateItemsText"></span></li>
+                </ul>
+            </aside>
+        </div>
+    </div>
+
+    <div class="fm-bd__bar" x-show="barOn" x-cloak>
+        <span class="fm-bd__bartxt">
+            <span x-text="setCount"></span>
+            <b class="fmbd-num" x-text="format(totals.total)"></b>
+            <em class="fmbd-num" x-show="totals.saving > 0">
+                <?= $escaper->escapeHtml(__('Bundle save')) ?> <span x-text="format(totals.saving)"></span>
+            </em>
+        </span>
+        <button type="button" class="fm-bd__cta fm-bd__cta--bar" :class="done ? 'is-done' : ''" @click="add()">
+            <span x-show="done"><?= $escaper->escapeHtml(__('Added')) ?></span>
+            <span x-show="!done && missing.length"><?= $escaper->escapeHtml(__('Choose size')) ?></span>
+            <span x-show="!done && !missing.length"><?= $escaper->escapeHtml(__('Add to cart')) ?></span>
+        </button>
+    </div>
+
+    <div class="fm-bd__ov" x-ref="panel" x-show="panelSlot" x-cloak @click.self="closePanel()"
+         @keydown="trapPanel($event)">
+        <div class="fm-bd__sheet" role="dialog" aria-modal="true" tabindex="-1" x-ref="sheet"
+             :aria-labelledby="'<?= /* @noEscape */ $uid ?>_sheettitle'">
+            <div class="fm-bd__grab" aria-hidden="true"></div>
+            <div class="fm-bd__sheethead">
+                <h3 id="<?= $escaper->escapeHtmlAttr($uid) ?>_sheettitle">
+                    <span x-text="panelSlot ? i18n.chooseTitle.replace('%1', slotWord(panelSlot)) : ''"></span>
+                    <p x-text="panelSlot ? i18n.optionsAllWith.replace('%1', panelSlot.candidates.length)
+                        .replace('%2', discountText(panelSlot)) : ''"></p>
+                </h3>
+                <button type="button" class="fm-bd__x" @click="closePanel()"
+                        aria-label="<?= $escaper->escapeHtmlAttr(__('Close')) ?>">
+                    <?= /* @noEscape */ $icons['close'] ?>
+                </button>
+            </div>
+            <ul class="fm-bd__cands" x-show="panelSlot">
+                <template x-for="(candidate, candidateIndex) in (panelSlot ? panelSlot.candidates : [])"
+                          :key="candidate.productId">
+                    <li>
+                        <button type="button" class="fm-bd__cand"
+                                :aria-pressed="candidateIndex === panelSlot.selected ? 'true' : 'false'"
+                                @click="pick(panelSlot, candidateIndex)">
+                            <img :src="candidate.image" alt="" width="64" height="64" loading="lazy">
+                            <span class="fm-bd__candtxt">
+                                <span x-text="candidate.name"></span>
+                                <small :class="candidateDelivery(candidate).direct ? 'is-direct' : ''"
+                                       x-text="candidateDelivery(candidate).label"></small>
+                            </span>
+                            <span class="fm-bd__candpr fmbd-num">
+                                <span x-text="format(bundlePrice(panelSlot, candidate))"></span>
+                                <s x-show="bundlePrice(panelSlot, candidate) < prices(panelSlot,
+                                    candidate).regularPrice" x-text="format(prices(panelSlot,
+                                    candidate).regularPrice)"></s>
+                            </span>
+                            <span class="fm-bd__candck"><?= /* @noEscape */ $icons['check'] ?></span>
+                        </button>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </div>
+
+    <div class="fm-bd__toast" role="status" x-show="toast" x-cloak>
+        <?= /* @noEscape */ $icons['check'] ?>
+        <span x-text="toast"></span>
+        <a href="<?= $escaper->escapeUrl($block->getUrl('checkout/cart')) ?>">
+            <?= $escaper->escapeHtml(__('Shopping cart')) ?>
+        </a>
+    </div>
+</section>

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="FalconMedia_BundleDeals::rules" title="Bundle Deals" translate="title" module="FalconMedia_BundleDeals"
+             parent="Magento_CatalogRule::promo" sortOrder="30" action="bundledeals/rule/"
+             resource="FalconMedia_BundleDeals::rules"/>
+    </menu>
+</config>

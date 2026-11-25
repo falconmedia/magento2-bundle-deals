@@ -1,0 +1,573 @@
+<?php
+
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+
+/**
+ * Bundle deal overview page: heading, filters, cards with colour switch, pager and empty state.
+ */
+declare(strict_types=1);
+
+use FalconMedia\BundleDeals\Block\Overview\Listing;
+use FalconMedia\BundleDeals\ViewModel\Overview;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Magento\Cms\Block\Block as CmsBlock;
+use Magento\Framework\Escaper;
+
+/**
+ * @var Listing $block
+ */
+/**
+ * @var Escaper $escaper
+ */
+/**
+ * @var HyvaCsp $hyvaCsp
+ */
+
+$texts = $block->getData('texts');
+
+$overview = $block->getOverview();
+$cards = $overview->getCards();
+$pager = $overview->getPager();
+$facets = $overview->getFacets();
+$filters = $overview->getFilters();
+$sportFacets = $facets['sport'] ?? [];
+$brandFacets = $facets['brand'] ?? [];
+$sortOptions = $overview->getSortOptions();
+$maxDiscount = $cards ? (int) round(max(array_column($cards, 'maxDiscountPercent'))) : 0;
+$activeLabels = [];
+foreach ($facets as $options) {
+    foreach ($options as $option) {
+        if ($option['active']) {
+            $activeLabels[] = $option['label'];
+        }
+    }
+}
+$allSportsUrl = $overview->getUrl([Overview::PARAM_SPORT => null, Overview::PARAM_PAGE => null]);
+$allBrandsUrl = $overview->getUrl([$overview->getBrandParam() => null, Overview::PARAM_PAGE => null]);
+$sportChipClass = 'fmbd-chip shrink-0 gap-fmbd-2 min-h-a11y focus-visible:outline focus-visible:outline-2 '
+    . 'focus-visible:outline-offset-2 focus-visible:outline-fmbd-focus';
+
+/**
+ * Renders the brand and sort selects; used in the filter bar and in the mobile sheet.
+ */
+$renderSelects = function (string $idPrefix) use (
+    $escaper,
+    $overview,
+    $filters,
+    $brandFacets,
+    $sortOptions,
+    $allBrandsUrl
+): void {
+    ?>
+    <form method="get" action="<?= $escaper->escapeUrl($overview->getResetUrl()) ?>"
+          class="flex flex-wrap items-end gap-fmbd-4">
+        <?php if (!empty($filters['sport'])): ?>
+            <input type="hidden" name="<?= $escaper->escapeHtmlAttr(Overview::PARAM_SPORT) ?>"
+                   value="<?= $escaper->escapeHtmlAttr($filters['sport']) ?>">
+        <?php endif; ?>
+        <?php if ($brandFacets): ?>
+            <div class="flex flex-col gap-fmbd-1">
+                <label for="<?= $escaper->escapeHtmlAttr($idPrefix) ?>-brand"
+                       class="text-fmbd-sm font-semibold"><?= $escaper->escapeHtml(__('Brand')) ?></label>
+                <select id="<?= $escaper->escapeHtmlAttr($idPrefix) ?>-brand"
+                        name="<?= $escaper->escapeHtmlAttr($overview->getBrandParam()) ?>"
+                        class="fmbd-select form-select pl-fmbd-4 min-w-48" @change="go">
+                    <option value="" data-url="<?= $escaper->escapeUrl($allBrandsUrl) ?>">
+                        <?= $escaper->escapeHtml(__('All brands')) ?>
+                    </option>
+                    <?php foreach ($brandFacets as $slug => $option): ?>
+                        <option value="<?= $escaper->escapeHtmlAttr((string) $slug) ?>"
+                                data-url="<?= $escaper->escapeUrl($option['active']
+                                    ? $overview->getUrl([Overview::PARAM_PAGE => null])
+                                    : $option['url']) ?>"
+                                <?= $option['active'] ? 'selected' : '' ?>>
+                            <?= $escaper->escapeHtml($option['label']) ?> (<?= (int) $option['count'] ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        <?php endif; ?>
+        <div class="flex flex-col gap-fmbd-1">
+            <label for="<?= $escaper->escapeHtmlAttr($idPrefix) ?>-sort"
+                   class="text-fmbd-sm font-semibold"><?= $escaper->escapeHtml(__('Sort by')) ?></label>
+            <select id="<?= $escaper->escapeHtmlAttr($idPrefix) ?>-sort"
+                    name="<?= $escaper->escapeHtmlAttr(Overview::PARAM_SORT) ?>"
+                    class="fmbd-select form-select pl-fmbd-4 min-w-48" @change="go">
+                <?php foreach ($sortOptions as $option): ?>
+                    <option value="<?= $escaper->escapeHtmlAttr($option['code']) ?>"
+                            data-url="<?= $escaper->escapeUrl($option['url']) ?>"
+                            <?= $option['active'] ? 'selected' : '' ?>>
+                        <?= $escaper->escapeHtml($option['label']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <button type="submit" class="fmbd-btn fmbd-btn--outline min-h-a11y" data-fm-apply>
+            <?= $escaper->escapeHtml(__('Apply')) ?>
+        </button>
+    </form>
+    <?php
+};
+?>
+<div class="fm-bundle-overview-page fmbd-wrap pt-fmbd-5 pb-fmbd-8 max-md:pb-32" x-data="fmBundleOverview">
+    <nav aria-label="<?= $escaper->escapeHtmlAttr(__('Breadcrumb')) ?>" class="text-fmbd-sm text-fmbd-text-muted">
+        <ol class="flex flex-wrap items-center gap-fmbd-2">
+            <li class="flex items-center gap-fmbd-2">
+                <a href="<?= $escaper->escapeUrl($block->getBaseUrl()) ?>"
+                   class="inline-flex items-center min-h-6 text-fmbd-text-muted underline-offset-2 hover:underline">
+                    <?= $escaper->escapeHtml(__('Home')) ?>
+                </a>
+                <span aria-hidden="true">/</span>
+            </li>
+            <li><span aria-current="page"><?= $escaper->escapeHtml($overview->getHeading()) ?></span></li>
+        </ol>
+    </nav>
+
+    <div class="flex flex-wrap items-end justify-between gap-x-fmbd-7 gap-y-fmbd-4 mt-fmbd-3 mb-fmbd-5">
+        <div class="max-w-intro">
+            <h1 class="fmbd-h-md text-fmbd-text"><?= $escaper->escapeHtml($overview->getHeading()) ?></h1>
+            <?php if ($overview->getCmsBlockId() !== ''): ?>
+                <div class="mt-fmbd-3 text-fmbd-text-soft">
+                    <?= /* @noEscape */ $block->getLayout()->createBlock(CmsBlock::class)
+                        ->setBlockId($overview->getCmsBlockId())
+                        ->toHtml() ?>
+                </div>
+            <?php elseif ($overview->getIntro() !== ''): ?>
+                <p class="mt-fmbd-3 mb-0 text-fmbd-text-soft leading-normal">
+                    <?= $escaper->escapeHtml($overview->getIntro()) ?>
+                </p>
+            <?php endif; ?>
+        </div>
+        <ul class="flex flex-col gap-fmbd-2 text-fmbd-sm">
+            <?php if ($maxDiscount > 0): ?>
+                <li class="flex items-center gap-fmbd-2">
+                    <svg class="text-fmbd-ok shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+                    <?= $escaper->escapeHtml($texts->get('overview_up_to', [$maxDiscount])) ?>
+                </li>
+            <?php endif; ?>
+            <li class="flex items-center gap-fmbd-2">
+                <svg class="text-fmbd-ok shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+                <?= $escaper->escapeHtml(__('Choose the size per item')) ?>
+            </li>
+            <li class="flex items-center gap-fmbd-2">
+                <svg class="text-fmbd-ok shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+                <?= $escaper->escapeHtml(__('Discount applied directly in your cart')) ?>
+            </li>
+        </ul>
+    </div>
+
+    <div class="flex flex-wrap items-end justify-between gap-fmbd-4 border-y border-fmbd-border py-fmbd-4">
+        <?php if ($sportFacets): ?>
+            <nav aria-label="<?= $escaper->escapeHtmlAttr(__('Sport')) ?>"
+                 class="w-full md:w-auto -mx-fmbd-4 px-fmbd-4 md:mx-0 md:px-0 overflow-x-auto">
+                <ul class="flex flex-nowrap md:flex-wrap gap-fmbd-2">
+                    <li>
+                        <a href="<?= $escaper->escapeUrl($allSportsUrl) ?>"
+                           class="<?= /* @noEscape */ $sportChipClass ?><?= empty($filters['sport'])
+                               ? ' fmbd-chip--active' : '' ?>"
+                           <?= empty($filters['sport']) ? 'aria-current="true"' : '' ?>>
+                            <?= $escaper->escapeHtml(__('All sports')) ?>
+                        </a>
+                    </li>
+                    <?php foreach ($sportFacets as $option): ?>
+                        <li>
+                            <a href="<?= $escaper->escapeUrl($option['url']) ?>" rel="nofollow"
+                               class="<?= /* @noEscape */ $sportChipClass ?><?= $option['active']
+                                   ? ' fmbd-chip--active' : '' ?>"
+                               <?= $option['active'] ? 'aria-current="true"' : '' ?>>
+                                <?= $escaper->escapeHtml($option['label']) ?>
+                                <span class="font-normal opacity-80 fmbd-num"><?= (int) $option['count'] ?></span>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </nav>
+        <?php endif; ?>
+        <div class="hidden md:block">
+            <?php $renderSelects('fm-bundle-filter'); ?>
+        </div>
+    </div>
+
+    <p class="my-fmbd-4 text-fmbd-sm text-fmbd-text-muted fmbd-num">
+        <?= $escaper->escapeHtml($pager['total'] === 1 ? __('1 set') : __('%1 sets', $pager['total'])) ?>
+    </p>
+
+    <?php if (!$cards): ?>
+        <div class="flex flex-col items-start gap-fmbd-3 rounded-fmbd-lg border border-fmbd-border bg-fmbd-surface-1 p-fmbd-6">
+            <h2 class="text-fmbd-lg font-semibold m-0">
+                <?= $escaper->escapeHtml($texts->get('overview_empty_title')) ?>
+            </h2>
+            <p class="m-0 text-fmbd-text-muted"><?= $escaper->escapeHtml($texts->get('overview_empty_hint')) ?></p>
+            <?php if ($filters): ?>
+                <a href="<?= $escaper->escapeUrl($overview->getResetUrl()) ?>"
+                   class="fmbd-btn fmbd-btn--outline min-h-a11y"><?= $escaper->escapeHtml(__('Clear filters')) ?></a>
+            <?php endif; ?>
+        </div>
+    <?php else: ?>
+        <ul class="grid grid-cols-2 lg:grid-cols-4 gap-x-fmbd-4 gap-y-fmbd-6 md:gap-x-fmbd-5">
+            <?php foreach ($cards as $card): ?>
+                <?php
+                $variants = $card['variants'];
+                $hasSwitch = count($variants) > 1;
+                $images = array_values(array_pad(array_slice($card['images'], 0, 3), 3, ''));
+                $percent = (int) round((float) $card['maxDiscountPercent']);
+                $currentLabel = '';
+                $currentVariant = null;
+                foreach ($variants as $variant) {
+                    if ((int) $variant['ruleId'] === (int) $card['ruleId']) {
+                        $currentLabel = (string) $variant['label'];
+                        $currentVariant = $variant;
+                    }
+                }
+                // The card's own variant always gets a dot, also when it sorts behind the visible ones.
+                $visibleVariants = array_slice($variants, 0, 4);
+                if ($currentVariant !== null && !in_array($currentVariant, $visibleVariants, true)) {
+                    $visibleVariants[count($visibleVariants) - 1] = $currentVariant;
+                }
+                ?>
+                <li class="relative flex flex-col gap-fmbd-2 group/card" data-rule-id="<?= (int) $card['ruleId'] ?>"
+                    <?= $hasSwitch ? 'x-data="fmBundleCard"' : '' ?>>
+                    <div class="fm-bundle-collage <?= $hasSwitch ? 'fm-bundle-collage--colours' : '' ?>
+                                relative grid grid-cols-[2fr_1fr] grid-rows-2 gap-fmbd-1 aspect-4/3
+                                rounded-fmbd-md bg-fmbd-surface-2 p-fmbd-1 overflow-hidden">
+                        <?php foreach ($images as $index => $image): ?>
+                            <div class="<?= $index === 0 ? 'row-span-2' : '' ?> flex items-center justify-center
+                                        rounded-fmbd-sm bg-fmbd-bg overflow-hidden min-h-0" aria-hidden="true">
+                                <?php if ($image !== ''): ?>
+                                    <img src="<?= $escaper->escapeUrl($image) ?>" alt="" loading="lazy" decoding="async"
+                                         width="<?= $index === 0 ? 320 : 160 ?>"
+                                         height="<?= $index === 0 ? 320 : 160 ?>"
+                                         class="w-full h-full object-contain scale-[1.18]" data-fm-collage
+                                         <?= $hasSwitch ? ':src="img' . (int) $index . '"' : '' ?>>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php if ($percent > 0): ?>
+                            <span class="fmbd-badge bg-fmbd-primary text-fmbd-on-primary">
+                                <?= $escaper->escapeHtml(__('-%1%', $percent)) ?>
+                            </span>
+                        <?php endif; ?>
+                        <span class="fmbd-badge fmbd-badge--dark top-auto bottom-fmbd-3 left-fmbd-3">
+                            <?= $escaper->escapeHtml(__('Set of %1', (int) $card['itemCount'])) ?>
+                        </span>
+                    <?php if ($hasSwitch): ?>
+                        <div class="fm-bundle-colours">
+                            <div class="fm-bundle-colours__dots" role="group"
+                                 aria-label="<?= $escaper->escapeHtmlAttr(__('Colour of the set')) ?>">
+                                <?php foreach ($visibleVariants as $variant): ?>
+                                    <?php
+                                    $available = !empty($variant['inStock']);
+                                    $variantState = $overview->getVariantState($variant);
+                                    $swatchStyle = empty($variant['swatchHex'])
+                                        ? ''
+                                        : 'background-color: ' . $variant['swatchHex'];
+                                    ?>
+                                    <button type="button"
+                                            class="fm-bundle-colours__dot group/dot inline-flex
+                                                   items-center justify-center
+                                                   rounded-full cursor-pointer
+                                                   aria-disabled:cursor-not-allowed"
+                                            data-rule-id="<?= (int) $variant['ruleId'] ?>"
+                                            title="<?= $escaper->escapeHtmlAttr($variant['label']) ?>"
+                                            data-variant="<?= $escaper->escapeHtmlAttr($variantState) ?>"
+                                            aria-label="<?= $escaper->escapeHtmlAttr($available
+                                                ? $variant['label']
+                                                : __('%1, temporarily unavailable', $variant['label'])) ?>"
+                                            <?php if ($available): ?>
+                                                aria-pressed="<?= (int) $variant['ruleId'] === (int) $card['ruleId']
+                                                    ? 'true' : 'false' ?>"
+                                                :aria-pressed="isPressed"
+                                                @click="pick"
+                                            <?php else: ?>
+                                                aria-disabled="true"
+                                            <?php endif; ?>>
+                                        <span class="relative block w-6 h-6 rounded-full border border-fmbd-border-strong
+                                                     overflow-hidden bg-fmbd-surface-2 ring-fmbd-text ring-offset-2
+                                                     ring-offset-fmbd-bg group-aria-pressed/dot:ring-2
+                                                     group-aria-disabled/dot:opacity-60"
+                                              <?php if ($swatchStyle !== ''): ?>
+                                                  style="<?= $escaper->escapeHtmlAttr($swatchStyle) ?>"
+                                              <?php endif; ?>>
+                                            <?php if (empty($variant['swatchHex']) && !empty($variant['imageUrl'])): ?>
+                                                <img src="<?= $escaper->escapeUrl($variant['imageUrl']) ?>" alt=""
+                                                     width="24" height="24" loading="lazy"
+                                                     class="w-full h-full object-cover">
+                                            <?php endif; ?>
+                                            <?php if (!$available): ?>
+                                                <span class="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2
+                                                             rotate-45 bg-fmbd-text"></span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </button>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php if (count($variants) > 4): ?>
+                                <span class="fm-bundle-colours__more fmbd-num">
+                                    <span aria-hidden="true">+<?= count($variants) - 4 ?></span>
+                                    <span class="sr-only">
+                                        <?= $escaper->escapeHtml(__('%1 more colours', count($variants) - 4)) ?>
+                                    </span>
+                                </span>
+                            <?php endif; ?>
+                            <span class="sr-only" x-text="colourText">
+                                <?= $escaper->escapeHtml(__('Colour: %1', $currentLabel)) ?>
+                            </span>
+                        </div>
+                    <?php endif; ?>
+                    </div>
+
+                    <?php if (!empty($card['brand'])): ?>
+                        <span class="text-fmbd-sm text-fmbd-text-muted"><?= $escaper->escapeHtml($card['brand']) ?></span>
+                    <?php endif; ?>
+                    <h2 class="m-0 text-fmbd-base font-semibold leading-snug line-clamp-2">
+                        <a href="<?= $escaper->escapeUrl($card['url']) ?>"
+                           class="text-fmbd-text no-underline hover:underline after:absolute after:inset-0
+                                  after:rounded-fmbd-md focus-visible:outline-none
+                                  focus-visible:after:outline focus-visible:after:outline-2
+                                  focus-visible:after:outline-offset-4 focus-visible:after:outline-fmbd-focus"
+                           <?= $hasSwitch ? ':href="url"' : '' ?>>
+                            <?= $escaper->escapeHtml($card['title']) ?>
+                        </a>
+                    </h2>
+                    <?php if ($card['itemNames']): ?>
+                        <p class="m-0 text-fmbd-sm text-fmbd-text-muted line-clamp-2">
+                            <?= $escaper->escapeHtml(implode(', ', $card['itemNames'])) ?>
+                        </p>
+                    <?php endif; ?>
+
+                    <div class="flex flex-wrap items-baseline gap-x-fmbd-2 mt-auto">
+                        <span class="text-fmbd-lg font-bold fmbd-num" <?= $hasSwitch ? 'x-text="setText"' : '' ?>>
+                            <?= $escaper->escapeHtml($overview->formatPrice((float) $card['setPrice'])) ?>
+                        </span>
+                        <?php if ($card['saving'] > 0): ?>
+                            <s class="text-fmbd-sm text-fmbd-text-muted fmbd-num">
+                                <span class="sr-only"><?= $escaper->escapeHtml(__('Separately')) ?></span>
+                                <span <?= $hasSwitch ? 'x-text="sumText"' : '' ?>>
+                                    <?= $escaper->escapeHtml($overview->formatPrice((float) $card['sumPrice'])) ?>
+                                </span>
+                            </s>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($card['saving'] > 0): ?>
+                        <span class="text-fmbd-sm font-semibold text-fmbd-ok" <?= $hasSwitch ? 'x-text="saveText"' : '' ?>>
+                            <?= $escaper->escapeHtml(__(
+                                'You save %1',
+                                $overview->formatPrice((float) $card['saving'])
+                            )) ?>
+                        </span>
+                    <?php endif; ?>
+                    <?php if ($card['deliveryText'] !== '' || $hasSwitch): ?>
+                        <?php
+                        $deliveryClass = !empty($card['deliveryDirect']) ? 'text-fmbd-ok' : 'text-fmbd-warning';
+                        $deliveryClass = $hasSwitch ? '' : $deliveryClass;
+                        ?>
+                        <span class="flex items-center gap-fmbd-2 text-fmbd-sm
+                                     <?= $escaper->escapeHtmlAttr($deliveryClass) ?>"
+                              <?= $hasSwitch ? ':class="deliveryClass" x-show="hasDelivery"' : '' ?>
+                              <?= $hasSwitch && $card['deliveryText'] === '' ? 'style="display: none"' : '' ?>>
+                            <span class="w-2 h-2 rounded-full bg-current shrink-0" aria-hidden="true"></span>
+                            <span <?= $hasSwitch ? 'x-text="deliveryText"' : '' ?>>
+                                <?= $escaper->escapeHtml($card['deliveryText']) ?>
+                            </span>
+                        </span>
+                    <?php endif; ?>
+                    <span class="hidden md:inline-flex fmbd-btn fmbd-btn--outline fmbd-btn--sm self-start mt-fmbd-2
+                                 group-hover/card:bg-fmbd-text group-hover/card:text-fmbd-bg" aria-hidden="true">
+                        <?= $escaper->escapeHtml(__('View set')) ?>
+                    </span>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+
+    <?php if ($pager['pages'] > 1): ?>
+        <nav class="mt-fmbd-7" aria-label="<?= $escaper->escapeHtmlAttr(__('Pagination')) ?>">
+            <ol class="flex flex-wrap items-center justify-center gap-fmbd-2">
+                <li>
+                    <?php if ($pager['prevUrl']): ?>
+                        <a href="<?= $escaper->escapeUrl($pager['prevUrl']) ?>" rel="prev"
+                           class="inline-flex items-center justify-center w-11 h-11 rounded-fmbd-sm border
+                                  border-fmbd-border text-fmbd-text no-underline hover:border-fmbd-text"
+                           aria-label="<?= $escaper->escapeHtmlAttr(__('Go to the previous page')) ?>">
+                            <span aria-hidden="true">&lsaquo;</span>
+                        </a>
+                    <?php endif; ?>
+                </li>
+                <?php foreach ($overview->getPageLinks() as $link): ?>
+                    <li>
+                        <?php if ($link['page'] === null): ?>
+                            <span class="inline-flex items-center justify-center w-11 h-11"
+                                  aria-hidden="true">...</span>
+                        <?php elseif ($link['current']): ?>
+                            <span class="inline-flex items-center justify-center w-11 h-11 rounded-fmbd-sm bg-fmbd-text
+                                         text-fmbd-bg font-semibold fmbd-num" aria-current="page">
+                                <span class="sr-only"><?= $escaper->escapeHtml(__('Page')) ?></span>
+                                <?= (int) $link['page'] ?>
+                            </span>
+                        <?php else: ?>
+                            <a href="<?= $escaper->escapeUrl($link['url']) ?>"
+                               class="inline-flex items-center justify-center w-11 h-11 rounded-fmbd-sm border
+                                      border-fmbd-border text-fmbd-text no-underline fmbd-num hover:border-fmbd-text">
+                                <span class="sr-only"><?= $escaper->escapeHtml(__('Page')) ?></span>
+                                <?= (int) $link['page'] ?>
+                            </a>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+                <li>
+                    <?php if ($pager['nextUrl']): ?>
+                        <a href="<?= $escaper->escapeUrl($pager['nextUrl']) ?>" rel="next"
+                           class="inline-flex items-center justify-center w-11 h-11 rounded-fmbd-sm border
+                                  border-fmbd-border text-fmbd-text no-underline hover:border-fmbd-text"
+                           aria-label="<?= $escaper->escapeHtmlAttr(__('Go to the next page')) ?>">
+                            <span aria-hidden="true">&rsaquo;</span>
+                        </a>
+                    <?php endif; ?>
+                </li>
+            </ol>
+        </nav>
+    <?php endif; ?>
+
+    <div class="md:hidden fixed inset-x-0 bottom-0 z-30 border-t border-fmbd-border bg-fmbd-bg p-fmbd-3">
+        <button type="button" class="fmbd-btn fmbd-btn--inverse w-full justify-between min-h-a11y"
+                aria-haspopup="dialog" @click="openSheet">
+            <span class="inline-flex items-center gap-fmbd-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                <?= $escaper->escapeHtml(__('Filter & sort')) ?>
+            </span>
+            <?php if ($activeLabels): ?>
+                <span class="font-normal normal-case tracking-normal text-fmbd-sm truncate">
+                    <?= $escaper->escapeHtml(implode(', ', $activeLabels)) ?>
+                </span>
+            <?php endif; ?>
+        </button>
+    </div>
+
+    <dialog x-ref="sheet" @click="closeOnBackdrop"
+            aria-labelledby="fm-bundle-sheet-title"
+            class="md:hidden m-0 mt-auto w-full max-w-full max-h-screen-75 overflow-y-auto rounded-t-fmbd-lg
+                   bg-fmbd-bg text-fmbd-text p-fmbd-5 backdrop:bg-[var(--fmbd-overlay)]">
+        <div class="flex items-center justify-between mb-fmbd-4">
+            <h2 id="fm-bundle-sheet-title" class="text-fmbd-lg font-semibold m-0">
+                <?= $escaper->escapeHtml(__('Filter & sort')) ?>
+            </h2>
+            <button type="button" class="fmbd-icon-btn w-11 h-11" @click="closeSheet"
+                    aria-label="<?= $escaper->escapeHtmlAttr(__('Close')) ?>">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <?php if ($sportFacets): ?>
+            <p class="text-fmbd-sm font-semibold mb-fmbd-2"><?= $escaper->escapeHtml(__('Sport')) ?></p>
+            <ul class="flex flex-wrap gap-fmbd-2 mb-fmbd-5">
+                <li>
+                    <a href="<?= $escaper->escapeUrl($allSportsUrl) ?>"
+                       class="<?= /* @noEscape */ $sportChipClass ?><?= empty($filters['sport'])
+                           ? ' fmbd-chip--active' : '' ?>"
+                       <?= empty($filters['sport']) ? 'aria-current="true"' : '' ?>>
+                        <?= $escaper->escapeHtml(__('All sports')) ?>
+                    </a>
+                </li>
+                <?php foreach ($sportFacets as $option): ?>
+                    <li>
+                        <a href="<?= $escaper->escapeUrl($option['url']) ?>" rel="nofollow"
+                           class="<?= /* @noEscape */ $sportChipClass ?><?= $option['active']
+                               ? ' fmbd-chip--active' : '' ?>"
+                           <?= $option['active'] ? 'aria-current="true"' : '' ?>>
+                            <?= $escaper->escapeHtml($option['label']) ?>
+                            <span class="font-normal opacity-80 fmbd-num"><?= (int) $option['count'] ?></span>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+        <?php $renderSelects('fm-bundle-sheet'); ?>
+    </dialog>
+
+    <script type="application/ld+json"><?= /* @noEscape */ $overview->getJsonLd() ?></script>
+</div>
+<script>
+    function initFmBundleOverview() {
+        Alpine.data('fmBundleOverview', () => ({
+            init() {
+                this.$root.querySelectorAll('[data-fm-apply]').forEach((button) => {
+                    button.classList.add('hidden');
+                });
+            },
+            go() {
+                const option = this.$el.selectedOptions[0];
+                if (option && option.dataset.url) {
+                    window.location.assign(option.dataset.url);
+                }
+            },
+            openSheet() {
+                this.$refs.sheet.showModal();
+            },
+            closeSheet() {
+                this.$refs.sheet.close();
+            },
+            closeOnBackdrop(event) {
+                if (event.target === this.$refs.sheet) {
+                    this.closeSheet();
+                }
+            }
+        }));
+
+        Alpine.data('fmBundleCard', () => ({
+            current: '',
+            url: '',
+            img0: '',
+            img1: '',
+            img2: '',
+            setText: '',
+            sumText: '',
+            saveText: '',
+            deliveryText: '',
+            deliveryClass: '',
+            colourText: '',
+            init() {
+                const pressed = this.$root.querySelector(`button[data-rule-id="${this.$root.dataset.ruleId}"]`);
+                const images = this.$root.querySelectorAll('[data-fm-collage]');
+                [this.img0, this.img1, this.img2] = [0, 1, 2].map((index) => images[index] ? images[index].src : '');
+                if (pressed) {
+                    this.apply(pressed);
+                }
+            },
+            apply(button) {
+                const state = JSON.parse(button.dataset.variant);
+                this.current = button.dataset.ruleId;
+                this.url = state.url;
+                this.img0 = state.images[0] || this.img0;
+                this.img1 = state.images[1] || this.img1;
+                this.img2 = state.images[2] || this.img2;
+                this.setText = state.set;
+                this.sumText = state.sum;
+                this.saveText = state.save;
+                this.deliveryText = state.delivery;
+                this.deliveryClass = state.direct ? 'text-fmbd-ok' : 'text-fmbd-warning';
+                this.colourText = state.colour;
+            },
+            pick() {
+                this.apply(this.$el);
+            },
+            isPressed() {
+                return this.$el.dataset.ruleId === this.current ? 'true' : 'false';
+            },
+            hasDelivery() {
+                return this.deliveryText !== '';
+            }
+        }));
+    }
+
+    window.addEventListener('alpine:init', initFmBundleOverview, {once: true});
+</script>
+<?php $hyvaCsp->registerInlineScript() ?>

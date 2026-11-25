@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @package     FalconMedia_BundleDeals
+ * @author      Henk Valk (henk@falconmedia.nl)
+ *
+ * Copyright (c) Falcon Media (www.falconmedia.nl)
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\Catalog\Block\Product\View\Details">
+        <plugin name="falconmedia_bundle_deals_render_around_details"
+                type="FalconMedia\BundleDeals\Plugin\Catalog\RenderBundleDealAroundDetails"/>
+    </type>
+    <type name="Magento\Framework\App\RouterList">
+        <arguments>
+            <argument name="routerList" xsi:type="array">
+                <item name="falconmedia_bundle_deals_overview" xsi:type="array">
+                    <item name="class" xsi:type="string">FalconMedia\BundleDeals\Controller\Router</item>
+                    <item name="disable" xsi:type="boolean">false</item>
+                    <item name="sortOrder" xsi:type="string">61</item>
+                </item>
+            </argument>
+        </arguments>
+    </type>
+</config>

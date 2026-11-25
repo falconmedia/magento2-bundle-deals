@@ -1,0 +1,105 @@
+{
+    "falconmedia_bundle_deal_rule": {
+        "column": {
+            "rule_id": true,
+            "name": true,
+            "title": true,
+            "is_active": true,
+            "from_date": true,
+            "to_date": true,
+            "priority": true,
+            "exclude_other_discounts": true,
+            "created_at": true,
+            "updated_at": true,
+            "customer_group_ids": true,
+            "external_reference": true,
+            "color_group": true,
+            "color_option_id": true,
+            "color_sort_order": true,
+            "url_key": true,
+            "description": true
+        },
+        "index": {
+            "FALCONMEDIA_BUNDLE_DEAL_RULE_IS_ACTIVE_PRIORITY": true,
+            "FALCONMEDIA_BUNDLE_DEAL_RULE_COLOR_GROUP": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "FALCONMEDIA_BUNDLE_DEAL_RULE_EXTERNAL_REFERENCE": true,
+            "FALCONMEDIA_BUNDLE_DEAL_RULE_URL_KEY": true
+        }
+    },
+    "falconmedia_bundle_deal_rule_store": {
+        "column": {
+            "rule_id": true,
+            "store_id": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "FK_3211C30FF6FEAC3193140E55F5FC4C6B": true,
+            "FALCONMEDIA_BUNDLE_DEAL_RULE_STORE_STORE_ID_STORE_STORE_ID": true
+        }
+    },
+    "falconmedia_bundle_deal_slot": {
+        "column": {
+            "slot_id": true,
+            "rule_id": true,
+            "title": true,
+            "sort_order": true,
+            "sort_by": true,
+            "conditions_serialized": true,
+            "use_as_entry": true,
+            "discount_type": true,
+            "discount_amount": true,
+            "sales_rule_id": true,
+            "slot_type": true,
+            "exclude_special_price": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "FK_06EFE31F8928DF15419802649E063C28": true
+        }
+    },
+    "falconmedia_bundle_deal_link": {
+        "column": {
+            "link_id": true,
+            "rule_id": true,
+            "slot_id": true,
+            "product_id": true,
+            "position": true,
+            "use_as_entry": true
+        },
+        "index": {
+            "FALCONMEDIA_BUNDLE_DEAL_LINK_PRODUCT_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "FALCONMEDIA_BUNDLE_DEAL_LINK_RULE_ID_SLOT_ID_PRODUCT_ID": true,
+            "FALCONMDA_BNDL_DEAL_LNK_RULE_ID_FALCONMDA_BNDL_DEAL_RULE_RULE_ID": true,
+            "FALCONMDA_BNDL_DEAL_LNK_SLOT_ID_FALCONMDA_BNDL_DEAL_SLOT_SLOT_ID": true,
+            "FALCONMDA_BNDL_DEAL_LNK_PRD_ID_CAT_PRD_ENTT_ENTT_ID": true
+        }
+    },
+    "falconmedia_bundle_deal_index": {
+        "column": {
+            "rule_id": true,
+            "slot_id": true,
+            "product_id": true,
+            "position": true,
+            "is_entry": true
+        },
+        "index": {
+            "FALCONMEDIA_BUNDLE_DEAL_INDEX_PRODUCT_ID_SLOT_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "FALCONMDA_BNDL_DEAL_IDX_RULE_ID_FALCONMDA_BNDL_DEAL_RULE_RULE_ID": true,
+            "FALCONMDA_BNDL_DEAL_IDX_PRD_ID_CAT_PRD_ENTT_ENTT_ID": true
+        }
+    },
+    "salesrule": {
+        "column": {
+            "applies_to_bundle_items": true
+        }
+    }
+}
